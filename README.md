@@ -1,3 +1,3 @@
 # heartbeat
 
-A new Flutter project.
+A basic flutter project to create a POTS tracking app. 
