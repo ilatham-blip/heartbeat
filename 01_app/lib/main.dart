@@ -4,8 +4,19 @@ import 'package:heartbeat/symptomChart.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 
-void main() {
-  runApp(MyApp());
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'supabase_keys.dart';
+
+void main() async {
+
+  // initizling the supabase setup
+  await Supabase.initialize(
+    url: SupabaseKeys.url,
+    anonKey: SupabaseKeys.anonKey,
+  );
+
+
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
