@@ -1,0 +1,14 @@
+# --- Database & Environment ---
+supabase
+python-dotenv
+
+# --- Data Analysis ---
+pandas
+numpy
+scipy
+pyarrow          # required to save .parquet files
+fastparquet      # Alternative engine for parquet
+
+# ---  Specific Signal Processing Tool ---
+e2epyppg         
+matplotlib       
