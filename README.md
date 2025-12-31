@@ -19,8 +19,8 @@ This project uses Python 3.10
 ### 1. Clone the repository:
 In the terminal:
 
-    git clone https://github.com/oscar-graham/signal_processing.git
-    cd signal_processing
+    git clone https://github.com/oscar-graham/Prometheus_HRV_Signal_Processing.git
+    cd Prometheus_HRV_Signal_Processing
 
 Or clone manually via github.
 
