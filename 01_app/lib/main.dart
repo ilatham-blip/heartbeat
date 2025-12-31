@@ -4,17 +4,19 @@ import 'package:heartbeat/symptomChart.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+import 'test_connection.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_keys.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
   // initizling the supabase setup
   await Supabase.initialize(
     url: SupabaseKeys.url,
     anonKey: SupabaseKeys.anonKey,
   );
-
 
   runApp(const MyApp());
 }
@@ -65,6 +67,32 @@ class _MyHomePageState extends State<MyHomePage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         return Scaffold(
+          appBar: AppBar(
+            title: Row(
+              children: [
+                const SizedBox(width: 10),
+                const Text("Heartbeat Monitor"),
+
+                const SizedBox(width: 20),
+
+                // The "Developer Tools" Button
+                IconButton(
+                  icon: const Icon(Icons.build), // Wrench icon
+                  tooltip: "Test Connection",
+                  onPressed: () {
+                    // Navigate to the Test Screen you created earlier
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const TestConnectionScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+
           body: Row(
             children: [
               SafeArea(
@@ -91,91 +119,92 @@ class _MyHomePageState extends State<MyHomePage> {
               Expanded(
                 child: Container(
                   color: Theme.of(context).colorScheme.primaryContainer,
-                  child: page,  // ← Here.
+                  child: page, // ← Here.
                 ),
               ),
             ],
           ),
         );
-      }
+      },
     );
   }
 }
 
-class SymptomPage extends StatefulWidget{
-  const SymptomPage({ super.key });
+class SymptomPage extends StatefulWidget {
+  const SymptomPage({super.key});
 
   @override
   State<SymptomPage> createState() => _SymptomPage();
 }
 
-class _SymptomPage extends State<SymptomPage>{
+class _SymptomPage extends State<SymptomPage> {
   double _dizziness = 0.0;
   double _nausea = 0.0;
 
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Slider(
-          value: _dizziness, 
+          value: _dizziness,
           label: _dizziness.toString(),
           max: 7,
           divisions: 7,
-          onChanged: (double value){
+          onChanged: (double value) {
             setState(() {
               _dizziness = value;
             });
-          }
-          ),
+          },
+        ),
         Text("Dizziness intensity"),
-        SizedBox(height:10),
+        SizedBox(height: 10),
         Slider(
-          value: _nausea, 
+          value: _nausea,
           label: _nausea.toString(),
           max: 7,
           divisions: 7,
-          onChanged: (double value){
+          onChanged: (double value) {
             setState(() {
               _nausea = value;
             });
-          }
-          ),
-          Text("Nausea intensity"),
-          SizedBox(height:10),
-          ElevatedButton(
-            onPressed: (){
-              setState((){
-                appState.nausea.add(_nausea);
-                appState.dizziness.add(_dizziness);
-              });
-            }, 
-            child: Text("Record symptoms"))
+          },
+        ),
+        Text("Nausea intensity"),
+        SizedBox(height: 10),
+        ElevatedButton(
+          onPressed: () {
+            setState(() {
+              appState.nausea.add(_nausea);
+              appState.dizziness.add(_dizziness);
+            });
+          },
+          child: Text("Record symptoms"),
+        ),
       ],
     );
   }
 }
 
-class TrackerPage extends StatefulWidget{
-  const TrackerPage({ super.key });
+class TrackerPage extends StatefulWidget {
+  const TrackerPage({super.key});
 
   @override
   State<TrackerPage> createState() => _TrackerPage();
 }
 
-class _TrackerPage extends State<TrackerPage>{
+class _TrackerPage extends State<TrackerPage> {
   @override
-  Widget build(BuildContext context){
-    var appState  = context.watch<MyAppState>();
+  Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
     return Column(
       children: [
         Text("Dizziness:"),
         symptomChart(appState.dizziness),
         Text("Nausea:"),
-        symptomChart(appState.nausea)
+        symptomChart(appState.nausea),
       ],
     );
   }
