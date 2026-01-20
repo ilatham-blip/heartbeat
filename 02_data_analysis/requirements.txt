@@ -8,6 +8,7 @@ numpy
 scipy
 pyarrow          # required to save .parquet files
 fastparquet      # Alternative engine for parquet
+duckdb
 
 # ---  Specific Signal Processing Tool ---
 e2epyppg         

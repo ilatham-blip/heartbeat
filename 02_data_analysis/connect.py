@@ -30,7 +30,7 @@ def test_connection():
 def run_test_log():
     print("\n--- 1. CREATING FAKE USER LOG ---")
 
-    email = "patient12345@imperial.ac.uk"
+    email = "patient123456@imperial.ac.uk"
     password = "password123"
 
 
@@ -77,6 +77,6 @@ def run_test_log():
     
 
 if __name__ == "__main__":
-   #run_test_log()
-   test_connection()
+   run_test_log()
+   #test_connection()
 
