@@ -15,8 +15,8 @@ class EveningQuiz extends StatelessWidget{
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        for(var val in symptoms)
-          CustomSlider(text: val, variable: dummy)
+        
+          
 
       ]
     );

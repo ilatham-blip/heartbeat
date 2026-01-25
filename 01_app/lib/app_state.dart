@@ -8,6 +8,22 @@ class MyAppState extends ChangeNotifier{
   final users = ["iris", "peter"];
   int pageindex = 0;
 
+  Map<String, double> episodeScores = {
+    "Dizziness when standing": 0,
+    "Heart racing and palpitations": 0,
+    "Chest pain": 0,
+    "Headache": 0, 
+    "Difficulty concentrating": 0,
+    "Muscle pain": 0, 
+    "Difficulty breathing": 0
+    
+  };
+
+  void updateEpisodeScore(String symptom, double newValue) {
+    episodeScores[symptom] = newValue;
+    notifyListeners(); 
+  }
+
   Widget home_page = UserLoginPage();
 
   void changeIndex(int value){

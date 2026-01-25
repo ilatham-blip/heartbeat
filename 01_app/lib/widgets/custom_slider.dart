@@ -3,9 +3,15 @@ import 'package:provider/provider.dart';
 
 class CustomSlider extends StatefulWidget{
   final String text;
-  final variable;
+  final double value;
+  final ValueChanged<double> onChanged;
 
-  const CustomSlider({super.key, required this.text, required this.variable});
+  const CustomSlider({
+    super.key, 
+    required this.text, 
+    required this.value, 
+    required this.onChanged,
+  });
 
   @override
   State<CustomSlider> createState() => _CustomSlider();
@@ -20,13 +26,11 @@ class _CustomSlider extends State<CustomSlider>{
       children: [
         Text(widget.text),
         Slider(
-          value: widget.variable,
-          label: widget.variable.toString(),
+          value: widget.value,
+          label: widget.value.round().toString(),
           max: 3,
           divisions: 3,
-          onChanged: (double value) {
-            ();
-          },
+          onChanged: widget.onChanged,
         ),
       ],
     );
