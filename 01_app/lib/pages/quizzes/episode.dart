@@ -18,9 +18,8 @@ class EpisodeQuiz extends StatelessWidget {
   Widget build(BuildContext context) {
     final appState = Provider.of<MyAppState>(context, listen: true);
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return ListView(
+      padding: EdgeInsets.all(16),
       children: [
         for (var symptom in symptoms)
           CustomSlider(
