@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:heartbeat/app_state.dart';
 
-class PlaceholderPage extends StatelessWidget{
+class MorePage extends StatelessWidget{
 
   @override
   Widget build(BuildContext context) {
