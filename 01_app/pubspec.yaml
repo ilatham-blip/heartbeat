@@ -18,6 +18,26 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  dart_define: ^2.1.2
 
 flutter:
   uses-material-design: true
+
+dart_define:
+
+    dart: true 
+
+    json: true 
+
+    json_path: dart_define.json 
+
+    dart_path: lib/dart_define.gen.dart 
+
+    class_name: dart_define 
+
+    variables: # needs configuring
+        - name: URL
+          description: supabase url
+          required: true
+        - name: ANONKEY
+          description: supabase anonymous access key

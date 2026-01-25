@@ -1,40 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:heartbeat/pages/user_login_page.dart';
-
+import 'package:heartbeat/app_state.dart';
 import 'package:heartbeat/test_connection.dart';
-import 'tracker_page.dart';
-import 'symptom_page.dart';
+import 'package:provider/provider.dart';
 
-class MyHomePage extends StatefulWidget {
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<HomePage> createState() => _HomePage();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  var selectedIndex = 0;
-
+class _HomePage extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
-    Widget page;
-    switch (selectedIndex) {
-      case 0:
-        page = UserLoginPage();
-      case 1:
-        page = TrackerPage();
-      default:
-        throw UnimplementedError('no widget for $selectedIndex');
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Scaffold(
-          appBar: AppBar(
+    return Scaffold(
+      appBar: AppBar(
             title: Row(
               children: [
-                const SizedBox(width: 10),
+                //const SizedBox(width: 10),
                 const Text("Heartbeat Monitor"),
 
-                const SizedBox(width: 20),
+                //const SizedBox(width: 20),
 
                 // The "Developer Tools" Button
                 IconButton(
@@ -53,40 +39,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ],
             ),
           ),
-
-          body: Row(
-            children: [
-              SafeArea(
-                child: NavigationRail(
-                  extended: constraints.maxWidth >= 600,
-                  destinations: [
-                    NavigationRailDestination(
-                      icon: Icon(Icons.home),
-                      label: Text('Home'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.analytics),
-                      label: Text('Analytics'),
-                    ),
-                  ],
-                  selectedIndex: selectedIndex,
-                  onDestinationSelected: (value) {
-                    setState(() {
-                      selectedIndex = value;
-                    });
-                  },
-                ),
-              ),
-              Expanded(
-                child: Container(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  child: page,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+          body: Column(children: [Text("Home Page")],),
     );
   }
 }

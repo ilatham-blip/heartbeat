@@ -23,8 +23,8 @@ class _TrackerPage extends State<TrackerPage> {
                 width: constraints.maxWidth*0.9,
                 height: constraints.maxHeight/3,
                 vals: appState.dizziness,
-                xlabel: "xLabel",
-                ylabel: "yLabel",
+                xlabel: "",
+                ylabel: "",
                 timeint: 1,
               ),
               Text("Nausea:"),
@@ -32,8 +32,8 @@ class _TrackerPage extends State<TrackerPage> {
                 width: constraints.maxWidth*0.9,
                 height: constraints.maxHeight/3,
                 vals: appState.nausea,
-                xlabel: "xLabel",
-                ylabel: "yLabel",
+                xlabel: "",
+                ylabel: "",
                 timeint: 1,
               )
             ],)

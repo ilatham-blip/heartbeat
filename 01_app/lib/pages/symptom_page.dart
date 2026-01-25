@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:heartbeat/app_state.dart';
+import 'package:heartbeat/pages/quizzes/episode.dart';
+import 'package:heartbeat/pages/quizzes/evening.dart';
+import 'package:heartbeat/pages/quizzes/lifestyle.dart';
+import 'package:heartbeat/pages/quizzes/morning.dart';
 import 'package:provider/provider.dart';
 
 class SymptomPage extends StatefulWidget {
@@ -10,50 +14,33 @@ class SymptomPage extends StatefulWidget {
 }
 
 class _SymptomPage extends State<SymptomPage> {
-  double _dizziness = 0.0;
-  double _nausea = 0.0;
 
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<MyAppState>(context, listen: true);
+    Widget dailyWidget;
+   if(DateTime.now().hour<15){
+          dailyWidget = MorningQuiz();
+        } else{
+          dailyWidget = EveningQuiz();
+        }
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Slider(
-          value: _dizziness,
-          label: _dizziness.toString(),
-          max: 7,
-          divisions: 7,
-          onChanged: (double value) {
-            setState(() {
-              _dizziness = value;
-            });
-          },
-        ),
-        Text("Dizziness intensity"),
-        SizedBox(height: 10),
-        Slider(
-          value: _nausea,
-          label: _nausea.toString(),
-          max: 7,
-          divisions: 7,
-          onChanged: (double value) {
-            setState(() {
-              _nausea = value;
-            });
-          },
-        ),
-        Text("Nausea intensity"),
-        SizedBox(height: 10),
-        ElevatedButton(
-          onPressed: () {
-              appState.add(appState.nausea, _nausea);
-              appState.add(appState.dizziness, _dizziness);
-          },
-          child: Text("Record symptoms"),
-        ),
-      ],
-    );
+    return DefaultTabController(length: 3, child: 
+    Scaffold(
+      appBar: AppBar(
+        title: Text("Symptom Logging"),
+        bottom: TabBar(tabs: [
+          Icon(Icons.sunny),
+          Icon(Icons.monitor_heart),
+          Icon(Icons.apple)
+            ],
+              ),
+      ),
+      body: TabBarView(children: [
+        dailyWidget,
+        EpisodeQuiz(),
+        LifestyleQuiz()
+      ])
+    ));
   }
 }

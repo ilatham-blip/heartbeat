@@ -49,7 +49,7 @@ class GeneralPlot extends StatelessWidget {
               ],
               isCurved: true,
               barWidth: 4,
-              color: Colors.red,
+              color: Colors.blue,
             ),
           ],
         )

@@ -8,23 +8,26 @@ class UserLoginPage extends StatelessWidget{
   Widget build(BuildContext context) {
     final appState = Provider.of<MyAppState>(context, listen: true);
 
-    return Column(
+    return Scaffold(body: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        TextField(
-          decoration: const InputDecoration(
-            border: UnderlineInputBorder(),
-            labelText: 'Enter your username',
-          ),
-          onChanged: (value) {
-            appState.verify(value);
-          },
-        ),
-        // ElevatedButton(
-        //   onPressed: appState.verify(), 
-        //   child: Text("Verify")
-        //   )
+        Padding(padding: EdgeInsetsGeometry.all(8.0),
+        child: 
+          TextField(
+            decoration: const InputDecoration(
+              border: UnderlineInputBorder(),
+              labelText: 'Enter your username',
+            ),
+            onSubmitted: (value) {
+              if(appState.verify(value)){
+                appState.changeIndex(0);
+              }else{
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content:Text("Invalid username, please try again"), duration: Duration(milliseconds:1200), behavior: SnackBarBehavior.floating,));
+              }
+            },
+          ),)
       ],
-    );
+    ));
   }
 }
