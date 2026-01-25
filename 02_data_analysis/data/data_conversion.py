@@ -74,7 +74,26 @@ def txt_to_csv(txt_path):
     
     return csv_path
 
+def csv2parquet(file_name, channels=None):
+    with open(file_name, 'r') as f:
+        raw_data = pd.read_csv(f)
+        if channels is not None:
+            data = raw_data[channels]
+        else:
+            data = raw_data
+    
+    # Get the directory where this script is located
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Get just the filename from the original txt file
+    original_filename = os.path.basename(file_name)
+    parquet_filename = os.path.splitext(original_filename)[0] + ".parquet"
+    
+    # Build output CSV path in the script's directory
+    parquet_path = os.path.join(script_dir, parquet_filename)
 
+    data.to_parquet(parquet_path, index=False)
+    return parquet_path
 
 
     

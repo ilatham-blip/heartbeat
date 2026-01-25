@@ -77,6 +77,6 @@ def run_test_log():
     
 
 if __name__ == "__main__":
-   run_test_log()
-   #test_connection()
+   #run_test_log()
+   test_connection()
 

@@ -4,7 +4,7 @@ from e2epyppg.ppg_reconstruction import reconstruction
 from e2epyppg.ppg_clean_extraction import clean_seg_extraction
 from e2epyppg.ppg_peak_detection import peak_detection
 from e2epyppg.ppg_hrv_extraction import hrv_extraction
-from data.data import csv2df
+from data.data_conversion import *
 from data.txt2csv import txt_to_csv
 import numpy as np
 import pandas as pd
@@ -12,12 +12,16 @@ import time
 
 
 time_start = time.time()
-# Provide your PPG signal and sampling rate (you can use your own signal in format `np.ndarray`)
-file_name = "data/opensignals_98D351FE8835_2026-01-03_21-00-20.csv" # Change this to your file path
-if file_name.endswith('.txt'):
-    file_name = txt_to_csv(file_name)  # Convert to CSV first
 
-data = csv2df(file_name)
+from retrieve import load_ppg_into_pipeline
+
+measurement, ppg_df = load_ppg_into_pipeline("bde02a90-6b1d-4342-b5f7-d0fe93b0a1fd")
+
+data = ppg_df
+
+
+
+
 A1 = data['A1'].values
 
 input_sig = A1
