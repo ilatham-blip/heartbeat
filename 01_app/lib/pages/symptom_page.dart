@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:heartbeat/app_state.dart';
-import 'package:heartbeat/pages/quizzes/episode.dart';
+import 'package:heartbeat/pages/quizzes/episode.dart' ;
 import 'package:heartbeat/pages/quizzes/evening.dart';
 import 'package:heartbeat/pages/quizzes/lifestyle.dart';
 import 'package:heartbeat/pages/quizzes/morning.dart';

@@ -9,16 +9,21 @@ class EveningQuiz extends StatelessWidget{
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<MyAppState>(context, listen: true);
-    double dummy = 0;
-    
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        for(var val in symptoms)
-          CustomSlider(text: val, variable: dummy)
 
-      ]
+    return ListView(
+      padding: EdgeInsets.all(16),
+      children: [
+        for (var symptom in symptoms)
+          CustomSlider(
+            text: symptom,
+
+            value: appState.eveningScores[symptom] ?? 0.0,
+            // Send the new value to Provider
+            onChanged: (newValue) {
+              appState.updateEveningScore(symptom, newValue);
+            },
+          ),
+      ],
     );
   }
 }

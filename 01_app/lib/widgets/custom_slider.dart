@@ -1,32 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class CustomSlider extends StatefulWidget{
+
+class CustomSlider extends StatelessWidget {
   final String text;
-  final variable;
+  final double value;
+  final double max;
+  final int divisions;
+  final ValueChanged<double> onChanged;
 
-  const CustomSlider({super.key, required this.text, required this.variable});
-
-  @override
-  State<CustomSlider> createState() => _CustomSlider();
-}
-
-class _CustomSlider extends State<CustomSlider>{
+  const CustomSlider({
+    super.key,
+    required this.text,
+    required this.value,
+    this.max = 3.0,
+    this.divisions = 3,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(widget.text),
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Text("$text: ${value.toStringAsFixed(1)}"),
+        ),
         Slider(
-          value: widget.variable,
-          label: widget.variable.toString(),
-          max: 3,
-          divisions: 3,
-          onChanged: (double value) {
-            ();
-          },
+          value: value,
+          max: max,
+          divisions: divisions,
+          label: value.toString(),
+          onChanged: onChanged,
         ),
       ],
     );

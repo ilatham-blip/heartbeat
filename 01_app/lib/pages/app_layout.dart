@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:heartbeat/app_state.dart';
 import 'package:heartbeat/pages/home_page.dart';
+import 'package:heartbeat/pages/more_page.dart';
 import 'package:heartbeat/pages/symptom_page.dart';
 
 import 'package:provider/provider.dart';
@@ -27,7 +28,7 @@ class _AppLayoutState extends State<AppLayout> {
       case 2:
         page = TrackerPage();
       case 3:
-        page = Placeholder();
+        page = MorePage();
       default:
         throw UnimplementedError('no widget for $selectedIndex');
     }
