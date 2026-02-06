@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:heartbeat/app_state.dart';
-import 'package:heartbeat/widgets/chart.dart';
 import 'package:heartbeat/widgets/custom_slider.dart';
 
 class LifestyleQuiz extends StatelessWidget {

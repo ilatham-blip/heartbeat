@@ -1,6 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:heartbeat/pages/app_layout.dart';
 import 'package:heartbeat/pages/user_login_page.dart';
+import 'package:flutter/material.dart';
+
+class EveningEntry {
+  EveningEntry({
+    required this.dateTime,
+    required this.heartRateBpm,
+    required this.hrvMs,
+    required this.fatigueScore,
+    required this.baselineSymptoms,
+    required this.notes,
+  });
+
+  final DateTime dateTime;
+  final int heartRateBpm;
+  final int hrvMs;
+  final int fatigueScore;            // 0..100
+  final List<String> baselineSymptoms;
+  final String notes;
+}
 
 class MyAppState extends ChangeNotifier{
   final dizziness = <double>[];
@@ -87,5 +106,27 @@ class MyAppState extends ChangeNotifier{
       notifyListeners();
       return true;
     } else {return false;}
+  }
+  final List<EveningEntry> eveningEntries = [];
+
+  void saveEveningReview({
+    required DateTime date,
+    required TimeOfDay time,
+    required int heartRateBpm,
+    required int hrvMs,
+    required int fatigueScore,
+    required List<String> baselineSymptoms,
+    required String notes,
+  }) {
+    final dt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    eveningEntries.add(EveningEntry(
+      dateTime: dt,
+      heartRateBpm: heartRateBpm,
+      hrvMs: hrvMs,
+      fatigueScore: fatigueScore,
+      baselineSymptoms: baselineSymptoms,
+      notes: notes,
+    ));
+    notifyListeners();
   }
 }
