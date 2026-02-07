@@ -1,118 +1,107 @@
--- THIS FILE ALREADY BUILT THE TABLES ON THE WEBSITE
--- THIS IS JUST VERSION CONTROL/BACKUP
+-- ========================================================
+-- STEP 1: TURN ON THE SECURITY SYSTEM
+-- ========================================================
+-- Lock down the core tables
+ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.daily_checkins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lifestyle_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pots_episodes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.measurements ENABLE ROW LEVEL SECURITY;
+
+-- Lock down the NEW tables
+ALTER TABLE public.consent_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.research_studies ENABLE ROW LEVEL SECURITY;
+
+-- ========================================================
+-- STEP 2: DEFINE THE RULES (POLICIES)
+-- ========================================================
 
 -- --------------------------------------------------------
--- 1. USER PROFILES (No Change)
+-- 1. USER PROFILES
 -- --------------------------------------------------------
-CREATE TABLE public.user_profiles (
-    id uuid REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-    email text,
-    created_at timestamptz DEFAULT now(),
-    
-    -- User Info
-    comorbidities text[],
-    onset_trigger text,
-    is_research_participant boolean DEFAULT false
-);
+CREATE POLICY "Users view own profile" ON public.user_profiles
+FOR SELECT USING (auth.uid() = id);
 
--- --------------------------------------------------------
--- 2. DAILY CHECK-INS (Log Type: MORNING vs EVENING)
--- --------------------------------------------------------
--- Instead of specific columns like "morning_fatigue", we use generic names.
--- The 'checkin_type' tells us if it was morning or evening.
+CREATE POLICY "Users update own profile" ON public.user_profiles
+FOR UPDATE USING (auth.uid() = id);
 
-CREATE TABLE public.daily_checkins (
-    checkin_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id uuid REFERENCES public.user_profiles(id) NOT NULL,
-    date date DEFAULT CURRENT_DATE,
-    created_at timestamptz DEFAULT now(),
+CREATE POLICY "Users insert own profile" ON public.user_profiles
+FOR INSERT WITH CHECK (auth.uid() = id);
 
-    -- === THE LOG TYPE ===
-    -- 'MORNING' (5am-5pm) or 'EVENING' (5pm-5am)
-    checkin_type text CHECK (checkin_type IN ('MORNING', 'EVENING')),
-
-    -- === SHARED SYMPTOMS (Asked in both) ===
-    -- generic names reused for both morning and evening logs
-    fatigue_level int CHECK (fatigue_level BETWEEN 0 AND 3),
-    dizziness_level int CHECK (dizziness_level BETWEEN 0 AND 3),
-    
-    -- Tachycardia (Morning) / Palpitations (Evening) - treated as same sensation
-    heart_sensation_level int CHECK (heart_sensation_level BETWEEN 0 AND 3),
-
-    -- === MORNING SPECIFIC ===
-    -- Only filled if checkin_type = 'MORNING'
-    sleep_quality int CHECK (sleep_quality BETWEEN 0 AND 3),
-
-    -- === EVENING SPECIFIC ===
-    -- Only filled if checkin_type = 'EVENING'
-    chest_pain_level int CHECK (chest_pain_level BETWEEN 0 AND 3),
-    headache_level int CHECK (headache_level BETWEEN 0 AND 3),
-    concentration_diff int CHECK (concentration_diff BETWEEN 0 AND 3),
-    gi_symptoms_level int CHECK (gi_symptoms_level BETWEEN 0 AND 3),
-    breathing_diff int CHECK (breathing_diff BETWEEN 0 AND 3),
-    temperature_change boolean, -- Abnormal hot/cold feeling
-
-    -- CONSTRAINT: One Morning and One Evening log per user per day.
-    UNIQUE(user_id, date, checkin_type)
-);
 
 -- --------------------------------------------------------
--- 3. LIFESTYLE LOGS (Behavior & Triggers)
+-- 2. DAILY CHECK-INS
 -- --------------------------------------------------------
-CREATE TABLE public.lifestyle_logs (
-    log_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id uuid REFERENCES public.user_profiles(id) NOT NULL,
-    date date DEFAULT CURRENT_DATE,
-    
-    exposure_to_heat boolean DEFAULT false,
-    standing_duration_mins int,
-    exercise_mild_mins int,
-    exercise_moderate_mins int,
-    exercise_intense_mins int,
-    excessive_rest boolean DEFAULT false,
-    
-    carbs_consumed_grams int,
-    fluid_intake_liters float,
-    alcohol_units float,
-    period_day_count int,
-    
-    stress_level int CHECK (stress_level BETWEEN 0 AND 3),
-    personal_notes text,
+CREATE POLICY "Users view own checkins" ON public.daily_checkins
+FOR SELECT USING (auth.uid() = user_id);
 
-    UNIQUE(user_id, date)
-);
+CREATE POLICY "Users create own checkins" ON public.daily_checkins
+FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users update own checkins" ON public.daily_checkins
+FOR UPDATE USING (auth.uid() = user_id);
+
 
 -- --------------------------------------------------------
--- 4. POTS EPISODES (Attack Tracker)
+-- 3. LIFESTYLE LOGS
 -- --------------------------------------------------------
-CREATE TABLE public.pots_episodes (
-    episode_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id uuid REFERENCES public.user_profiles(id) NOT NULL,
-    recorded_at timestamptz DEFAULT now(),
-    
-    -- Severity of specific symptoms during the attack
-    dizziness_upright int CHECK (dizziness_upright BETWEEN 0 AND 3),
-    fainting_feeling int CHECK (fainting_feeling BETWEEN 0 AND 3),
-    palpitations int CHECK (palpitations BETWEEN 0 AND 3),
-    chest_pain int CHECK (chest_pain BETWEEN 0 AND 3),
-    headache int CHECK (headache BETWEEN 0 AND 3),
-    concentration_diff int CHECK (concentration_diff BETWEEN 0 AND 3),
-    muscle_pain int CHECK (muscle_pain BETWEEN 0 AND 3),
-    nausea int CHECK (nausea BETWEEN 0 AND 3),
-    stomach_pain int CHECK (stomach_pain BETWEEN 0 AND 3),
-    constipation_diarrhoea int CHECK (constipation_diarrhoea BETWEEN 0 AND 3),
-    breathing_diff int CHECK (breathing_diff BETWEEN 0 AND 3)
-);
+CREATE POLICY "Users view own lifestyle" ON public.lifestyle_logs
+FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users insert own lifestyle" ON public.lifestyle_logs
+FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users update own lifestyle" ON public.lifestyle_logs
+FOR UPDATE USING (auth.uid() = user_id);
+
 
 -- --------------------------------------------------------
--- 5. MEASUREMENTS (Hardware Data)
+-- 4. POTS EPISODES
 -- --------------------------------------------------------
-CREATE TABLE public.measurements (
-    measurement_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id uuid REFERENCES public.user_profiles(id) NOT NULL,
-    recorded_at timestamptz DEFAULT now(),
-    heart_rate float,
-    hrv_score float,
-    raw_csv_path text,
-    source text default 'manual' -- 'manual' or 'sensor'
-);
+CREATE POLICY "Users view own episodes" ON public.pots_episodes
+FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users insert own episodes" ON public.pots_episodes
+FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users update own episodes" ON public.pots_episodes
+FOR UPDATE USING (auth.uid() = user_id);
+
+
+-- --------------------------------------------------------
+-- 5. MEASUREMENTS
+-- --------------------------------------------------------
+CREATE POLICY "Users view own measurements" ON public.measurements
+FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users insert own measurements" ON public.measurements
+FOR INSERT WITH CHECK (auth.uid() = user_id);
+-- Note: No UPDATE policy. Only the Python backend (Service Role) can update results.
+
+
+-- --------------------------------------------------------
+-- 6. CONSENT LOGS (New)
+-- --------------------------------------------------------
+-- Users can see their own consent history.
+CREATE POLICY "Users view own consent" ON public.consent_logs
+FOR SELECT USING (auth.uid() = user_id);
+
+-- Users can sign a new consent form.
+CREATE POLICY "Users sign consent" ON public.consent_logs
+FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- CRITICAL: NO UPDATE POLICY.
+-- Once a legal consent form is signed, it should never be modified.
+
+
+-- --------------------------------------------------------
+-- 7. RESEARCH STUDIES (New)
+-- --------------------------------------------------------
+-- Everyone needs to read this table to check if a study code is valid.
+-- 'true' means the door is open for reading to everyone (even without logging in, if needed).
+CREATE POLICY "Public read access for studies" ON public.research_studies
+FOR SELECT USING (true);
+
+-- CRITICAL: NO INSERT/UPDATE POLICY.
+-- Regular users can never create or edit a research study. 
+-- Only you (the admin) can do this via the Supabase Dashboard.
