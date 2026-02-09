@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:heartbeat/services/notification_service.dart';
 
 const kBrandBlue = Color(0xFF1E40AF);
 const kBackgroundWhite = Color(0xFFFAFAFA);
@@ -13,6 +14,7 @@ class NotificationSettingsPage extends StatefulWidget {
 
 class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   bool _isLoading = true;
+  bool _permissionGranted = false;
 
   // Notification toggles
   bool _morningReminder = true;
@@ -24,6 +26,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   // Reminder times
   TimeOfDay _morningTime = const TimeOfDay(hour: 8, minute: 0);
   TimeOfDay _eveningTime = const TimeOfDay(hour: 20, minute: 0);
+
+  final _notificationService = NotificationService();
 
   @override
   void initState() {
@@ -50,6 +54,18 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
       _isLoading = false;
     });
+
+    // Check if any notifications are enabled and request permission
+    if (_morningReminder || _eveningReminder || _measurementReminder) {
+      await _checkAndRequestPermission();
+    }
+  }
+
+  Future<void> _checkAndRequestPermission() async {
+    final granted = await _notificationService.requestPermissions();
+    setState(() {
+      _permissionGranted = granted;
+    });
   }
 
   Future<void> _saveSettings() async {
@@ -64,6 +80,9 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     await prefs.setInt('morning_minute', _morningTime.minute);
     await prefs.setInt('evening_hour', _eveningTime.hour);
     await prefs.setInt('evening_minute', _eveningTime.minute);
+
+    // Reschedule all notifications with new settings
+    await _notificationService.scheduleAllNotifications();
   }
 
   Future<void> _pickTime(bool isMorning) async {
@@ -91,6 +110,18 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     return '$hour:$minute $period';
   }
 
+  Future<void> _testNotification() async {
+    await _notificationService.showTestNotification();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Test notification sent!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -103,6 +134,13 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_active),
+            onPressed: _testNotification,
+            tooltip: 'Test Notification',
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -111,6 +149,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Permission warning if not granted
+                  if (!_permissionGranted && (_morningReminder || _eveningReminder || _measurementReminder))
+                    _buildPermissionWarning(),
+                  
                   // Daily Check-in Reminders
                   _buildSection(
                     title: 'Daily Check-in Reminders',
@@ -122,8 +164,11 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         subtitle: 'Log your sleep quality and morning symptoms',
                         value: _morningReminder,
                         time: _morningTime,
-                        onChanged: (val) {
+                        onChanged: (val) async {
                           setState(() => _morningReminder = val);
+                          if (val && !_permissionGranted) {
+                            await _checkAndRequestPermission();
+                          }
                           _saveSettings();
                         },
                         onTimeTap: () => _pickTime(true),
@@ -134,8 +179,11 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                         subtitle: 'Record your daily symptoms and activities',
                         value: _eveningReminder,
                         time: _eveningTime,
-                        onChanged: (val) {
+                        onChanged: (val) async {
                           setState(() => _eveningReminder = val);
+                          if (val && !_permissionGranted) {
+                            await _checkAndRequestPermission();
+                          }
                           _saveSettings();
                         },
                         onTimeTap: () => _pickTime(false),
@@ -152,10 +200,13 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                     children: [
                       _buildToggleTile(
                         title: 'Heart Rate Measurement',
-                        subtitle: 'Reminder to take your daily HRV measurement',
+                        subtitle: 'Daily reminder at 10:00 AM to take HRV measurement',
                         value: _measurementReminder,
-                        onChanged: (val) {
+                        onChanged: (val) async {
                           setState(() => _measurementReminder = val);
+                          if (val && !_permissionGranted) {
+                            await _checkAndRequestPermission();
+                          }
                           _saveSettings();
                         },
                       ),
@@ -163,7 +214,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Reports & Updates
+                  // Reports & Updates (These don't use local notifications - would be push)
                   _buildSection(
                     title: 'Reports & Updates',
                     icon: Icons.insights,
@@ -220,6 +271,50 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildPermissionWarning() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.shade300),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Permission Required',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.orange.shade800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Enable notifications in system settings to receive reminders.',
+                  style: TextStyle(
+                    color: Colors.orange.shade700,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: _checkAndRequestPermission,
+            child: const Text('Enable'),
+          ),
+        ],
+      ),
     );
   }
 

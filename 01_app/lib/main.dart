@@ -4,6 +4,7 @@ import 'package:heartbeat/supabase_keys.dart';
 import 'package:provider/provider.dart';
 
 import 'package:heartbeat/app_state.dart';
+import 'package:heartbeat/services/notification_service.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'pages/app_layout.dart';
@@ -13,11 +14,14 @@ import 'pages/create_profile_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // initizling the supabase setup
+  // Initialize the supabase setup
   await Supabase.initialize(
     url: SupabaseKeys.url,
     anonKey: SupabaseKeys.anonKey,
   );
+
+  // Initialize notification service
+  await NotificationService().initialize();
 
   runApp(
     MultiProvider(
