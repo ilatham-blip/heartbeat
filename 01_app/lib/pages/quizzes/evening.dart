@@ -125,30 +125,9 @@ class _EveningQuizState extends State<EveningQuiz> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Heart rate
-                    _LabeledSlider(
-                      label: 'Heart Rate: ${_heartRate.round()} bpm',
-                      value: _heartRate,
-                      min: 40,
-                      max: 120,
-                      onChanged: (v) => setState(() => _heartRate = v),
-                      minLabel: '40',
-                      maxLabel: '120',
-                    ),
-                    const SizedBox(height: 12),
 
-                    // HRV
-                    _LabeledSlider(
-                      label: 'HRV: ${_hrv.round()} ms',
-                      value: _hrv,
-                      min: 0,
-                      max: 100,
-                      onChanged: (v) => setState(() => _hrv = v),
-                      minLabel: '0',
-                      maxLabel: '100',
-                    ),
-                    const SizedBox(height: 12),
 
+                  
                     // Fatigue
                     _LabeledSlider(
                       label: 'Abnormal Fatigue: ${_fatigueLabel(_fatigue)}',

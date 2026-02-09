@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:heartbeat/pages/app_layout.dart';
 import 'package:heartbeat/pages/user_login_page.dart';
-import 'package:flutter/material.dart';
 
+// Shared enums for morning page
+enum SleepQuality { awful, bad, fair, good }
+enum Severity { none, slight, moderate, severe }
 class EveningEntry {
   EveningEntry({
     required this.dateTime,
@@ -20,7 +22,56 @@ class EveningEntry {
   final List<String> baselineSymptoms;
   final String notes;
 }
+class MorningEntry {
+  MorningEntry({
+    required this.dateTime,
+    required this.sleepQuality,
+    required this.fatigue,
+    required this.dizzinessStanding,
+    required this.tachycardia,
+    required this.notes,
+  });
 
+  final DateTime dateTime;
+  final SleepQuality sleepQuality;
+  final Severity fatigue;
+  final Severity dizzinessStanding;
+  final Severity tachycardia;
+  final String notes;
+}
+class LifestyleEntry {
+  LifestyleEntry({
+    required this.date,
+    required this.hotPlace,
+    required this.refinedCarbs,
+    required this.standingMins,
+    required this.carbsGrams,
+    required this.waterLitres,
+    required this.alcoholUnits,
+    required this.restTooMuch,
+    required this.exMildMins,
+    required this.exModerateMins,
+    required this.exIntenseMins,
+    required this.onPeriod,
+    required this.stressLevel,
+    required this.notes,
+  });
+
+  final DateTime date;
+  final bool hotPlace;
+  final bool refinedCarbs;
+  final int standingMins;
+  final int carbsGrams;
+  final double waterLitres;
+  final int alcoholUnits;
+  final bool restTooMuch;
+  final int exMildMins;
+  final int exModerateMins;
+  final int exIntenseMins;
+  final bool onPeriod;
+  final int stressLevel;
+  final String notes;
+}
 class MyAppState extends ChangeNotifier{
   final dizziness = <double>[];
   final nausea = <double>[];
@@ -129,4 +180,72 @@ class MyAppState extends ChangeNotifier{
     ));
     notifyListeners();
   }
+  // Morning entries storage
+  final List<MorningEntry> _morningEntries = [];
+  List<MorningEntry> get morningEntries => List.unmodifiable(_morningEntries);
+
+  // Save method used by MorningQuiz
+  void saveMorningCheckIn({
+    required DateTime date,
+    required TimeOfDay time,
+    required SleepQuality sleepQuality,
+    required Severity fatigue,
+    required Severity dizzinessStanding,
+    required Severity tachycardia,
+    required String notes,
+  }) {
+    final dt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    _morningEntries.insert(
+      0,
+      MorningEntry(
+        dateTime: dt,
+        sleepQuality: sleepQuality,
+        fatigue: fatigue,
+        dizzinessStanding: dizzinessStanding,
+        tachycardia: tachycardia,
+        notes: notes,
+      ),
+    );
+    notifyListeners();
+  }
+    final List<LifestyleEntry> _lifestyleEntries = [];
+    List<LifestyleEntry> get lifestyleEntries => List.unmodifiable(_lifestyleEntries);
+
+    void saveLifestyleEntry({
+      required DateTime date,
+      required bool hotPlace,
+      required bool refinedCarbs,
+      required int standingMins,
+      required int carbsGrams,
+      required double waterLitres,
+      required int alcoholUnits,
+      required bool restTooMuch,
+      required int exMildMins,
+      required int exModerateMins,
+      required int exIntenseMins,
+      required bool onPeriod,
+      required int stressLevel,
+      required String notes,
+    }) {
+      _lifestyleEntries.insert(
+        0,
+        LifestyleEntry(
+          date: date,
+          hotPlace: hotPlace,
+          refinedCarbs: refinedCarbs,
+          standingMins: standingMins,
+          carbsGrams: carbsGrams,
+          waterLitres: waterLitres,
+          alcoholUnits: alcoholUnits,
+          restTooMuch: restTooMuch,
+          exMildMins: exMildMins,
+          exModerateMins: exModerateMins,
+          exIntenseMins: exIntenseMins,
+          onPeriod: onPeriod,
+          stressLevel: stressLevel,
+          notes: notes,
+        ),
+      );
+      notifyListeners();
+    }
 }

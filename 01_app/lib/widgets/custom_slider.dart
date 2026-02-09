@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 
 class CustomSlider extends StatelessWidget {
@@ -16,8 +15,19 @@ class CustomSlider extends StatelessWidget {
     this.max = 3.0,
     this.divisions = 3,
     required this.onChanged,
+    this.showLabel = true,      // NEW: show/hide the label above the slider
+    this.decimalPlaces = 1,     // NEW: control value formatting (e.g., minutes = 0)
   });
+// NEW
+  final bool showLabel;
+  final int decimalPlaces;
 
+  String _formatValue(double v) {
+    if (decimalPlaces <= 0) {
+      return v.round().toString();
+    }
+    return v.toStringAsFixed(decimalPlaces);
+  }
   @override
   Widget build(BuildContext context) {
     return Column(
