@@ -7,6 +7,8 @@ import 'package:heartbeat/pages/symptom_page.dart';
 import 'package:provider/provider.dart';
 import 'tracker_page.dart';
 
+import 'package:heartbeat/pages/plux_test_screen.dart';
+
 class AppLayout extends StatefulWidget {
   @override
   State<AppLayout> createState() => _AppLayoutState();
@@ -29,6 +31,8 @@ class _AppLayoutState extends State<AppLayout> {
         page = TrackerPage();
       case 3:
         page = MorePage();
+      case 4:
+        page = PluxTestScreen();
       default:
         throw UnimplementedError('no widget for $selectedIndex');
     }
@@ -36,7 +40,7 @@ class _AppLayoutState extends State<AppLayout> {
     return LayoutBuilder(
       builder: (context, constraints) {
         return Scaffold(
-          bottomNavigationBar: DefaultTabController(length: 4, child: Row(
+          bottomNavigationBar: DefaultTabController(length: 5, child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               IconButton(
@@ -55,6 +59,10 @@ class _AppLayoutState extends State<AppLayout> {
                 onPressed: (){appState.changeIndex(3);}, 
                 tooltip: "More",
                 icon: Icon(Icons.line_style)),
+              IconButton(
+              onPressed: (){appState.changeIndex(4);}, 
+              tooltip: "Plux Test Screen",
+              icon: Icon(Icons.line_style)),
           ],)),
           body: page,
         );

@@ -1,9 +1,22 @@
+import org.gradle.kotlin.dsl.dependencies
+import org.gradle.kotlin.dsl.implementation
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+
+repositories {
+    maven { url = uri("https://codeberg.org/api/packages/MavenPLUX/maven")}
+}
+
+dependencies {
+    implementation("info.plux.api:api:1.5.2")
+}
+
 
 android {
     namespace = "com.example.heartbeat"
