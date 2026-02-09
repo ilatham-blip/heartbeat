@@ -112,7 +112,7 @@ class MorePage extends StatelessWidget {
               iconColor: Colors.purple,
               iconBgColor: const Color(0xFFFAF5FF), // Very pale purple
               title: "Research Study",
-              subtitle: "Study Code: 123456",
+              subtitle: "View your study details",
               destination: const ResearchStudyPage(),
             ),
             _buildMenuItem(

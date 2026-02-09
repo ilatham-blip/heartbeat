@@ -7,6 +7,8 @@ import 'package:heartbeat/pages/symptom_page.dart';
 import 'package:provider/provider.dart';
 import 'tracker_page.dart';
 
+const kBrandBlue = Color(0xFF1E40AF);
+
 class AppLayout extends StatefulWidget {
   @override
   State<AppLayout> createState() => _AppLayoutState();
@@ -36,26 +38,58 @@ class _AppLayoutState extends State<AppLayout> {
     return LayoutBuilder(
       builder: (context, constraints) {
         return Scaffold(
-          bottomNavigationBar: DefaultTabController(length: 4, child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              IconButton(
-                onPressed: (){appState.changeIndex(0);}, 
-                tooltip: "Home",
-                icon: Icon(Icons.home)),
-              IconButton(
-                onPressed: (){appState.changeIndex(1);}, 
-                tooltip: "Logging",
-                icon: Icon(Icons.monitor_heart)),
-              IconButton(
-                onPressed: (){appState.changeIndex(2);}, 
-                tooltip: "Insights",
-                icon: Icon(Icons.analytics)),
-              IconButton(
-                onPressed: (){appState.changeIndex(3);}, 
-                tooltip: "More",
-                icon: Icon(Icons.line_style)),
-          ],)),
+          backgroundColor: const Color(0xFFFAFAFA),
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: BottomNavigationBar(
+              currentIndex: selectedIndex,
+              onTap: (index) => appState.changeIndex(index),
+              type: BottomNavigationBarType.fixed,
+              backgroundColor: Colors.white,
+              selectedItemColor: kBrandBlue,
+              unselectedItemColor: Colors.grey.shade400,
+              selectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.normal,
+                fontSize: 12,
+              ),
+              elevation: 0,
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home_outlined),
+                  activeIcon: Icon(Icons.home),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.monitor_heart_outlined),
+                  activeIcon: Icon(Icons.monitor_heart),
+                  label: 'Logging',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.analytics_outlined),
+                  activeIcon: Icon(Icons.analytics),
+                  label: 'Insights',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.menu_outlined),
+                  activeIcon: Icon(Icons.menu),
+                  label: 'More',
+                ),
+              ],
+            ),
+          ),
           body: page,
         );
       },
