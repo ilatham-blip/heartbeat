@@ -51,8 +51,10 @@ CREATE TABLE public.user_profiles (
   avg_alcohol_units_weekly integer,
   avg_exercise_mins_weekly integer,
   
-  -- Mental Health Baseline
-  mental_health_score integer
+  -- Mental Health Baseline (HADS - Hospital Anxiety and Depression Scale)
+  hads_anxiety_score integer CHECK (hads_anxiety_score BETWEEN 0 AND 21),
+  hads_depression_score integer CHECK (hads_depression_score BETWEEN 0 AND 21),
+  hads_total_score integer CHECK (hads_total_score BETWEEN 0 AND 42)
 );
 
 -- --------------------------------------------------------

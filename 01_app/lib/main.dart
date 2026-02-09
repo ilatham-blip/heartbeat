@@ -8,6 +8,7 @@ import 'package:heartbeat/app_state.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'pages/app_layout.dart';
 import 'pages/user_login_page.dart';
+import 'pages/create_profile_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,10 +63,28 @@ class AuthGate extends StatelessWidget {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
-        // If we have a valid session, show the App
+        // If we have a valid session, check if profile exists
         final session = snapshot.data?.session;
         if (session != null) {
-          return AppLayout(); 
+          return FutureBuilder<Map<String, dynamic>?>(
+            future: Supabase.instance.client
+                .from('user_profiles')
+                .select()
+                .eq('id', session.user.id)
+                .maybeSingle(),
+            builder: (context, profileSnapshot) {
+              if (profileSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(body: Center(child: CircularProgressIndicator()));
+              }
+              
+              // If no profile exists, redirect to create profile
+              if (profileSnapshot.data == null) {
+                return const CreateProfilePage();
+              }
+              
+              return AppLayout();
+            },
+          );
         } else {
           // Otherwise, show the Login Page
           return const UserLoginPage();

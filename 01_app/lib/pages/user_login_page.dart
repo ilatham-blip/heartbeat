@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:heartbeat/app_state.dart';
 import 'app_layout.dart';
+import 'create_profile_page.dart';
 
 
 class UserLoginPage extends StatefulWidget {
@@ -24,8 +25,8 @@ class _UserLoginPageState extends State<UserLoginPage> {
     try {
       // Using the user from your screenshot
       await Supabase.instance.client.auth.signInWithPassword(
-        email: 'patient1234@imperial.ac.uk', 
-        password: 'password123', // ⚠️ REPLACE with the real password you set!
+        email: 'potspatient@imperial.ac.uk', 
+        password: 'qwertyuiop', 
       );
       
       if (mounted) _onLoginSuccess();
@@ -200,8 +201,9 @@ class _UserLoginPageState extends State<UserLoginPage> {
                 // Switch to Sign Up
                 TextButton(
                   onPressed: () {
-                    // Navigate to Create Account Page
-                    // Navigator.of(context).pushNamed('/signup');
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => const CreateProfilePage()),
+                    );
                   },
                   child: const Text("Don't have an account? Create one"),
                 ),
