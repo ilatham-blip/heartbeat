@@ -26,7 +26,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
       // Using the user from your screenshot
       await Supabase.instance.client.auth.signInWithPassword(
         email: 'potspatient@imperial.ac.uk', 
-        password: 'qwertyuiop', 
+        password: '123456789', 
       );
       
       if (mounted) _onLoginSuccess();

@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:heartbeat/app_state.dart';
 import 'app_layout.dart';
+import 'user_login_page.dart';
 
 class CreateProfilePage extends StatefulWidget {
   const CreateProfilePage({super.key});
@@ -221,7 +222,16 @@ class _CreateProfilePageState extends State<CreateProfilePage> {
               )
             : IconButton(
                 icon: const Icon(Icons.close, color: Color(0xFF111827)),
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  } else {
+                    // If nothing to pop, replace with login page
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (context) => const UserLoginPage()),
+                    );
+                  }
+                },
               ),
         title: Text(
           'Create Profile (${_currentStep + 1}/5)',
