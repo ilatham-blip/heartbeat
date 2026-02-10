@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:heartbeat/app_state.dart';
 
@@ -186,20 +187,9 @@ class _MorningQuizState extends State<MorningQuiz> {
                   const SizedBox(height: 16),
 
                   // Save button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _save,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: const Color(0xFF4F7CFF),
-                      ),
-                      child: const Text(
-                        'Save Morning Check-in',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700),
-                      ),
-                    ),
+                  HeartbeatButton(
+                    label: 'Save Morning Check-in',
+                    onPressed: _save,
                   ),
                 ],
               ),

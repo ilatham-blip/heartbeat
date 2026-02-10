@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:heartbeat/app_state.dart';
 import 'package:heartbeat/widgets/chart.dart';
 import 'package:provider/provider.dart';
@@ -15,7 +16,9 @@ class _TrackerPage extends State<TrackerPage> {
   Widget build(BuildContext context) {
     final appState = Provider.of<MyAppState>(context, listen: true);
         
-      return LayoutBuilder(
+      return Scaffold(
+        backgroundColor: kBackgroundColor,
+        body: LayoutBuilder(
           builder: (context, constraints) {
             return Column(children: [
               Text("Dizziness:"),
@@ -36,9 +39,9 @@ class _TrackerPage extends State<TrackerPage> {
                 ylabel: "",
                 timeint: 1,
               )
-            ],)
-            ;
+            ],);
           },
-        );
+        ),
+      );
   }
 }

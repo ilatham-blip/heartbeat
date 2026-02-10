@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:heartbeat/app_state.dart'; // uses Severity enum and MyAppState
 
@@ -163,31 +164,14 @@ class _EpisodeQuizState extends State<EpisodeQuiz> {
             const SizedBox(height: 12),
 
             // Save button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFCC2B2B),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: () {
-                  // Optional: persist an episode; add this method to MyAppState if desired
-                  // app.savePotsEpisode(
-                  //   date: _date,
-                  //   time: _time,
-                  //   scores: Map.of(app.episodeScores),
-                  //   total: total,
-                  //   notes: _notesCtrl.text.trim(),
-                  // );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('POTS episode logged')),
-                  );
-                },
-                child: const Text(
-                  'Log POTS Episode',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                ),
-              ),
+            HeartbeatButton(
+              label: 'Log POTS Episode',
+              gradientColors: const [Color(0xFFCC2B2B), Color(0xFFEF4444)],
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('POTS episode logged')),
+                );
+              },
             ),
             const SizedBox(height: 16),
 

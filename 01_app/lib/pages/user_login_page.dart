@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:heartbeat/app_state.dart';
@@ -84,7 +85,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FF), 
+      backgroundColor: kBackgroundColor, 
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -181,19 +182,10 @@ class _UserLoginPageState extends State<UserLoginPage> {
                 const SizedBox(height: 32),
 
                 // Main Login Button
-                ElevatedButton(
+                HeartbeatButton(
+                  label: 'Sign In',
+                  isLoading: _isLoading,
                   onPressed: _isLoading ? null : _signIn,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F172A), 
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: _isLoading 
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
-                    : const Text("Sign In", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
 
                 const SizedBox(height: 16),

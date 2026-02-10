@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'more_pages/aboutus_page.dart';
 import 'more_pages/exportdata_page.dart';
 import 'more_pages/myprofile_page.dart';
 import 'more_pages/notificationsettings_page.dart';
 import 'more_pages/researchstudy_page.dart';
-
-const kBrandBlue = Color(0xFF1E40AF);
-const kBackgroundWhite = Color(0xFFFAFAFA); // Slightly off-white for contrast
 
 class MorePage extends StatelessWidget {
   const MorePage({super.key});
@@ -19,7 +17,7 @@ class MorePage extends StatelessWidget {
     final email = user?.email ?? "No Email Found";
 
     return Scaffold(
-      backgroundColor: kBackgroundWhite,
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
         title: const Text(
           "Health Monitor",

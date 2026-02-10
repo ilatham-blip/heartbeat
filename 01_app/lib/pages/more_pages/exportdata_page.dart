@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert';
-
-const kBrandBlue = Color(0xFF1E40AF);
-const kBackgroundWhite = Color(0xFFFAFAFA);
 
 class ExportDataPage extends StatefulWidget {
   const ExportDataPage({super.key});
@@ -19,7 +17,7 @@ class _ExportDataPageState extends State<ExportDataPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundWhite,
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
         title: const Text(
           "Export My Data",

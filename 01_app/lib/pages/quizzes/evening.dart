@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:heartbeat/app_state.dart';
 
@@ -76,6 +77,7 @@ class _EveningQuizState extends State<EveningQuiz> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
         title: const Text('Health Monitor'),
       ),
@@ -183,20 +185,9 @@ class _EveningQuizState extends State<EveningQuiz> {
                     const SizedBox(height: 16),
 
                     // Save button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _save,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          backgroundColor: const Color(0xFF4F7CFF),
-                        ),
-                        child: const Text(
-                          'Save Evening Review',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w700),
-                        ),
-                      ),
+                    HeartbeatButton(
+                      label: 'Save Evening Review',
+                      onPressed: _save,
                     ),
                   ],
                 ),

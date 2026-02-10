@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:heartbeat/app_state.dart';
 import 'package:heartbeat/widgets/custom_slider.dart';
@@ -439,19 +440,10 @@ class _LifestyleQuizState extends State<LifestyleQuiz> {
             const SizedBox(height: 12),
 
             // Save button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2FA54F),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: const Text(
-                  'Save Lifestyle Entry',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                ),
-              ),
+            HeartbeatButton(
+              label: 'Save Lifestyle Entry',
+              gradientColors: const [Color(0xFF16A34A), Color(0xFF4ADE80)],
+              onPressed: _save,
             ),
             const SizedBox(height: 16),
 

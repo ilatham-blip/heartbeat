@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-const kBrandBlue = Color(0xFF1E40AF);
-const kBackgroundWhite = Color(0xFFFAFAFA);
 
 class MyProfilePage extends StatefulWidget {
   const MyProfilePage({super.key});
@@ -54,7 +52,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundWhite,
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
         title: const Text(
           "My Profile",

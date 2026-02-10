@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:heartbeat/app_state.dart';
 import 'package:heartbeat/pages/quizzes/episode.dart' ;
 import 'package:heartbeat/pages/quizzes/evening.dart';
@@ -27,6 +28,7 @@ class _SymptomPage extends State<SymptomPage> {
 
     return DefaultTabController(length: 3, child: 
     Scaffold(
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
         title: Text("Symptom Logging"),
         bottom: TabBar(tabs: [
