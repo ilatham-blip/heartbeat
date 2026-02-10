@@ -123,43 +123,47 @@ class _EveningQuizState extends State<EveningQuiz> {
             ),
             const SizedBox(height: 12),
 
+            // Date & Time card
             _SectionCard(
-              title: 'Evening Review',
-              leadingIcon: Icons.nightlight,
+              title: 'Date & Time',
+              leadingIcon: Icons.calendar_month,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _PickerTile(
+                      label: 'Date',
+                      value:
+                          '${_date.month.toString().padLeft(2, '0')}/${_date.day.toString().padLeft(2, '0')}/${_date.year}',
+                      icon: Icons.calendar_today,
+                      onTap: _pickDate,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _PickerTile(
+                      label: 'Time',
+                      value: _formatTime(_time),
+                      icon: Icons.access_time,
+                      onTap: _pickTime,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Abnormal Fatigue card
+            _SectionCard(
+              title: 'Abnormal Fatigue',
+              leadingIcon: Icons.battery_alert_outlined,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Date & Time pickers
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _PickerTile(
-                          label: 'Date',
-                          value:
-                              '${_date.month.toString().padLeft(2, '0')}/${_date.day.toString().padLeft(2, '0')}/${_date.year}',
-                          icon: Icons.calendar_today,
-                          onTap: _pickDate,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _PickerTile(
-                          label: 'Time',
-                          value: _formatTime(_time),
-                          icon: Icons.access_time,
-                          onTap: _pickTime,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Abnormal Fatigue label + chips
                   Row(
                     children: [
                       const Text(
-                        'Abnormal Fatigue:',
-                        style: TextStyle(fontWeight: FontWeight.w700),
+                        'Current:',
+                        style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -173,90 +177,81 @@ class _EveningQuizState extends State<EveningQuiz> {
                     value: _fatigue,
                     onChanged: (s) => setState(() => _fatigue = s),
                   ),
-                  const SizedBox(height: 16),
-
-                  const Text('Baseline Symptoms',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 8),
-                  Column(
-                    children: _baselineOptions.map((label) {
-                      final selected = _selectedBaseline.contains(label);
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: InkWell(
-                          onTap: () {
-                            setState(() {
-                              if (selected) {
-                                _selectedBaseline.remove(label);
-                              } else {
-                                _selectedBaseline.add(label);
-                              }
-                            });
-                          },
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: selected
-                                    ? const Color(0xFF3A66FF)
-                                    : Colors.black12,
-                                width: selected ? 2 : 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    label,
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-
-                  const Text('Additional Notes',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _notesCtrl,
-                    maxLines: 4,
-                    decoration: const InputDecoration(
-                      hintText: 'How was your day overall?',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _save,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4F50FF),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: const Text(
-                        'Save Evening Review',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
                 ],
               ),
+            ),
+            const SizedBox(height: 12),
+
+            // Baseline Symptoms card
+            _SectionCard(
+              title: 'Baseline Symptoms',
+              leadingIcon: Icons.checklist_outlined,
+              child: Column(
+                children: _baselineOptions.map((label) {
+                  final selected = _selectedBaseline.contains(label);
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          if (selected) {
+                            _selectedBaseline.remove(label);
+                          } else {
+                            _selectedBaseline.add(label);
+                          }
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: selected
+                                ? const Color(0xFF3A66FF)
+                                : Colors.black12,
+                            width: selected ? 2 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                label,
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Additional Notes card
+            _SectionCard(
+              title: 'Additional Notes',
+              leadingIcon: Icons.notes_outlined,
+              child: TextField(
+                controller: _notesCtrl,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  hintText: 'How was your day overall?',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Save button (outside any card)
+            HeartbeatButton(
+              label: 'Save Evening Review',
+              onPressed: _save,
             ),
             const SizedBox(height: 12),
 

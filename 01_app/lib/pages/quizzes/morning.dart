@@ -83,116 +83,126 @@ class _MorningQuizState extends State<MorningQuiz> {
             ),
             const SizedBox(height: 12),
 
-            // Morning Check-in card
+            // Date & Time card
             _SectionCard(
-              title: 'Morning Check-in',
-              leadingIcon: Icons.wb_sunny,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              title: 'Date & Time',
+              leadingIcon: Icons.calendar_month,
+              child: Row(
                 children: [
-                  // Date & Time row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _PickerTile(
-                          label: 'Date',
-                          value:
-                              '${_date.month.toString().padLeft(2, '0')}/${_date.day.toString().padLeft(2, '0')}/${_date.year}',
-                          icon: Icons.calendar_today,
-                          onTap: _pickDate,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _PickerTile(
-                          label: 'Time',
-                          value: _formatTime(_time),
-                          icon: Icons.access_time,
-                          onTap: _pickTime,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Sleep quality chips
-                  _LabeledChipGroup<SleepQuality>(
-                    label: 'Sleep Quality:',
-                    value: _sleep,
-                    items: const [
-                      (SleepQuality.awful, 'Awful'),
-                      (SleepQuality.bad, 'Bad'),
-                      (SleepQuality.fair, 'Fair'),
-                      (SleepQuality.good, 'Good'),
-                    ],
-                    onChanged: (v) => setState(() => _sleep = v),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Abnormal fatigue chips
-                  _LabeledChipGroup<Severity>(
-                    label: 'Abnormal Fatigue:',
-                    value: _fatigue,
-                    items: const [
-                      (Severity.none, 'None'),
-                      (Severity.slight, 'Slight'),
-                      (Severity.moderate, 'Moderate'),
-                      (Severity.severe, 'Severe'),
-                    ],
-                    onChanged: (v) => setState(() => _fatigue = v),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Dizziness when standing chips
-                  _LabeledChipGroup<Severity>(
-                    label: 'Dizziness Standing:',
-                    value: _dizziness,
-                    items: const [
-                      (Severity.none, 'None'),
-                      (Severity.slight, 'Slight'),
-                      (Severity.moderate, 'Moderate'),
-                      (Severity.severe, 'Severe'),
-                    ],
-                    onChanged: (v) => setState(() => _dizziness = v),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Tachycardia chips
-                  _LabeledChipGroup<Severity>(
-                    label: 'Tachycardia:',
-                    value: _tachycardia,
-                    items: const [
-                      (Severity.none, 'None'),
-                      (Severity.slight, 'Slight'),
-                      (Severity.moderate, 'Moderate'),
-                      (Severity.severe, 'Severe'),
-                    ],
-                    onChanged: (v) => setState(() => _tachycardia = v),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Notes
-                  const Text('Additional Notes',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _notesCtrl,
-                    maxLines: 4,
-                    decoration: const InputDecoration(
-                      hintText: 'Any other observations...',
-                      border: OutlineInputBorder(),
+                  Expanded(
+                    child: _PickerTile(
+                      label: 'Date',
+                      value:
+                          '${_date.month.toString().padLeft(2, '0')}/${_date.day.toString().padLeft(2, '0')}/${_date.year}',
+                      icon: Icons.calendar_today,
+                      onTap: _pickDate,
                     ),
                   ),
-                  const SizedBox(height: 16),
-
-                  // Save button
-                  HeartbeatButton(
-                    label: 'Save Morning Check-in',
-                    onPressed: _save,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _PickerTile(
+                      label: 'Time',
+                      value: _formatTime(_time),
+                      icon: Icons.access_time,
+                      onTap: _pickTime,
+                    ),
                   ),
                 ],
               ),
+            ),
+            const SizedBox(height: 12),
+
+            // Sleep Quality card
+            _SectionCard(
+              title: 'Sleep Quality',
+              leadingIcon: Icons.bedtime_outlined,
+              child: _LabeledChipGroup<SleepQuality>(
+                label: 'Sleep Quality:',
+                value: _sleep,
+                items: const [
+                  (SleepQuality.awful, 'Awful'),
+                  (SleepQuality.bad, 'Bad'),
+                  (SleepQuality.fair, 'Fair'),
+                  (SleepQuality.good, 'Good'),
+                ],
+                onChanged: (v) => setState(() => _sleep = v),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Abnormal Fatigue card
+            _SectionCard(
+              title: 'Abnormal Fatigue',
+              leadingIcon: Icons.battery_alert_outlined,
+              child: _LabeledChipGroup<Severity>(
+                label: 'Abnormal Fatigue:',
+                value: _fatigue,
+                items: const [
+                  (Severity.none, 'None'),
+                  (Severity.slight, 'Slight'),
+                  (Severity.moderate, 'Moderate'),
+                  (Severity.severe, 'Severe'),
+                ],
+                onChanged: (v) => setState(() => _fatigue = v),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Dizziness Standing card
+            _SectionCard(
+              title: 'Dizziness Standing',
+              leadingIcon: Icons.swap_vert_outlined,
+              child: _LabeledChipGroup<Severity>(
+                label: 'Dizziness Standing:',
+                value: _dizziness,
+                items: const [
+                  (Severity.none, 'None'),
+                  (Severity.slight, 'Slight'),
+                  (Severity.moderate, 'Moderate'),
+                  (Severity.severe, 'Severe'),
+                ],
+                onChanged: (v) => setState(() => _dizziness = v),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Tachycardia card
+            _SectionCard(
+              title: 'Tachycardia',
+              leadingIcon: Icons.favorite_outline,
+              child: _LabeledChipGroup<Severity>(
+                label: 'Tachycardia:',
+                value: _tachycardia,
+                items: const [
+                  (Severity.none, 'None'),
+                  (Severity.slight, 'Slight'),
+                  (Severity.moderate, 'Moderate'),
+                  (Severity.severe, 'Severe'),
+                ],
+                onChanged: (v) => setState(() => _tachycardia = v),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Additional Notes card
+            _SectionCard(
+              title: 'Additional Notes',
+              leadingIcon: Icons.notes_outlined,
+              child: TextField(
+                controller: _notesCtrl,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  hintText: 'Any other observations...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Save button (outside any card)
+            HeartbeatButton(
+              label: 'Save Morning Check-in',
+              onPressed: _save,
             ),
             const SizedBox(height: 16),
 

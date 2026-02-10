@@ -82,24 +82,11 @@ class _EpisodeQuizState extends State<EpisodeQuiz> {
             const SizedBox(height: 12),
 
             _EPSectionCard(
-              title: 'Log POTS Episode',
+              title: 'Date & Time',
               leadingIcon: Icons.monitor_heart_outlined,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Info box
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF3F0),
-                      border: Border.all(color: const Color(0xFFFFD6CD)),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Text(
-                      'Log as often as you need. Skip irrelevant questions by leaving them at 0.',
-                      style: TextStyle(color: Colors.black87),
-                    ),
-                  ),
                   const SizedBox(height: 12),
 
                   // Date & Time pickers
@@ -245,13 +232,26 @@ class _EPHeaderBanner extends StatelessWidget {
         border: Border.all(color: const Color(0xFFDCE7FF)),
       ),
       child: Row(
-        children: const [
-          Icon(Icons.monitor_heart_outlined, color: Color(0xFF4F7CFF)),
-          SizedBox(width: 12),
+        children: [
+          const Icon(Icons.monitor_heart_outlined, color: Color(0xFF4F7CFF)),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              'POTS Episode',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'POTS Episode Log',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 50),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Log as often as you need. Leave non-applicable questions as None.',
+                  style: TextStyle(
+                    color: Colors.black54,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -298,7 +298,7 @@ class _EPSectionCard extends StatelessWidget {
                       maxLines: 3,
                       overflow: TextOverflow.fade,
                       style: const TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
