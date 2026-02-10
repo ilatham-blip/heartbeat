@@ -241,7 +241,7 @@ class _EPHeaderBanner extends StatelessWidget {
               children: const [
                 Text(
                   'POTS Episode Log',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 50),
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 30),
                 ),
                 SizedBox(height: 4),
                 Text(

@@ -223,7 +223,7 @@ class _LifestyleQuizState extends State<LifestyleQuiz> {
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Eating refined carbohydrates (white bread, etc.)',
+                            'Eating refined carbohydrates',
                             softWrap: true,
                             maxLines: 3,
                             overflow: TextOverflow.fade,
@@ -502,7 +502,7 @@ class _InfoBanner extends StatelessWidget {
               children: [
                 Text(title,
                     style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 16)),
+                        fontWeight: FontWeight.w700, fontSize: )),
                 const SizedBox(height: 4),
                 Text(subtitle,
                     style: const TextStyle(

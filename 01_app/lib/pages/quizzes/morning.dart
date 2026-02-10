@@ -21,10 +21,14 @@ class _MorningQuizState extends State<MorningQuiz> {
   Severity _tachycardia = Severity.none;
 
   final TextEditingController _notesCtrl = TextEditingController();
+  final TextEditingController _hrCtrl = TextEditingController();
+  final TextEditingController _hrvCtrl = TextEditingController();
 
   @override
   void dispose() {
     _notesCtrl.dispose();
+    _hrCtrl.dispose();
+    _hrvCtrl.dispose();
     super.dispose();
   }
 
@@ -105,6 +109,64 @@ class _MorningQuizState extends State<MorningQuiz> {
                       value: _formatTime(_time),
                       icon: Icons.access_time,
                       onTap: _pickTime,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // HR & HRV card
+            _SectionCard(
+              title: 'HR & HRV',
+              leadingIcon: Icons.monitor_heart_outlined,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _hrCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Heart Rate (bpm)',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _hrvCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'HRV (ms)',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('PLUX HeartBIT connection coming soon')),
+                        );
+                      },
+                      icon: const Icon(Icons.bluetooth),
+                      label: const Text('Connect to PLUX HeartBIT'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF4F7CFF),
+                        side: const BorderSide(color: Color(0xFF4F7CFF)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -266,7 +328,7 @@ class _InfoBanner extends StatelessWidget {
               children: [
                 Text(title,
                     style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 16)),
+                        fontWeight: FontWeight.w700, fontSize: 30)),
                 const SizedBox(height: 4),
                 Text(subtitle,
                     style: const TextStyle(
@@ -378,43 +440,37 @@ class _LabeledChipGroup<T> extends StatelessWidget {
   final List<(T, String)> items;
   final ValueChanged<T> onChanged;
 
+  static const _severityColors = {
+    'None': (Color(0xFFE8F5E9), Color(0xFF2E7D32)),
+    'Slight': (Color(0xFFFFF8E1), Color(0xFFF9A825)),
+    'Moderate': (Color(0xFFFFF3E0), Color(0xFFE65100)),
+    'Severe': (Color(0xFFFFEBEE), Color(0xFFC62828)),
+    'Awful': (Color(0xFFFFEBEE), Color(0xFFC62828)),
+    'Bad': (Color(0xFFFFF3E0), Color(0xFFE65100)),
+    'Fair': (Color(0xFFFFF8E1), Color(0xFFF9A825)),
+    'Good': (Color(0xFFE8F5E9), Color(0xFF2E7D32)),
+  };
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(label,
-                style:
-                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-            const SizedBox(width: 6),
-            Text(_selectedLabel(value),
-                style: const TextStyle(color: Colors.black54)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: items.map((it) {
-            final selected = it.$1 == value;
-            return ChoiceChip(
-              label: Text(it.$2),
-              selected: selected,
-              onSelected: (_) => onChanged(it.$1),
-            );
-          }).toList(),
-        ),
-      ],
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: items.map((it) {
+        final selected = it.$1 == value;
+        final colors = _severityColors[it.$2];
+        return ChoiceChip(
+          label: Text(it.$2),
+          selected: selected,
+          onSelected: (_) => onChanged(it.$1),
+          selectedColor: colors?.$1,
+          labelStyle: TextStyle(
+            color: selected ? colors?.$2 : Colors.black87,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        );
+      }).toList(),
     );
-  }
-
-  String _selectedLabel(T v) {
-    for (final it in items) {
-      if (it.$1 == v) return it.$2;
-    }
-    return '';
   }
 }
 

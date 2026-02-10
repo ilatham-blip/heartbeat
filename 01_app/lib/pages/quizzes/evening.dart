@@ -35,10 +35,14 @@ class _EveningQuizState extends State<EveningQuiz> {
   ];
 
   final TextEditingController _notesCtrl = TextEditingController();
+  final TextEditingController _hrCtrl = TextEditingController();
+  final TextEditingController _hrvCtrl = TextEditingController();
 
   @override
   void dispose() {
     _notesCtrl.dispose();
+    _hrCtrl.dispose();
+    _hrvCtrl.dispose();
     super.dispose();
   }
 
@@ -117,7 +121,7 @@ class _EveningQuizState extends State<EveningQuiz> {
           children: [
             // Top tabs live elsewhere; we render the body only
             _InfoBanner(
-              title: 'Evening Time (5pm - 5am)',
+              title: 'Evening Time Log (5pm - 5am)',
               subtitle: 'Review your day',
               icon: Icons.nightlight_round,
             ),
@@ -152,32 +156,71 @@ class _EveningQuizState extends State<EveningQuiz> {
             ),
             const SizedBox(height: 12),
 
-            // Abnormal Fatigue card
+            // HR & HRV card
             _SectionCard(
-              title: 'Abnormal Fatigue',
-              leadingIcon: Icons.battery_alert_outlined,
+              title: 'HR & HRV',
+              leadingIcon: Icons.monitor_heart_outlined,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Text(
-                        'Current:',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                      Expanded(
+                        child: TextField(
+                          controller: _hrCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Heart Rate (bpm)',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        _fatigueLabel(_fatigue),
-                        style: const TextStyle(color: Color(0xFF3A66FF)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _hrvCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'HRV (ms)',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  _SeverityChips(
-                    value: _fatigue,
-                    onChanged: (s) => setState(() => _fatigue = s),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('PLUX HeartBIT connection coming soon')),
+                        );
+                      },
+                      icon: const Icon(Icons.bluetooth),
+                      label: const Text('Connect to PLUX HeartBIT'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF4F7CFF),
+                        side: const BorderSide(color: Color(0xFF4F7CFF)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Abnormal Fatigue card
+            _SectionCard(
+              title: 'Abnormal Fatigue',
+              leadingIcon: Icons.battery_alert_outlined,
+              child: _SeverityChips(
+                value: _fatigue,
+                onChanged: (s) => setState(() => _fatigue = s),
               ),
             ),
             const SizedBox(height: 12),
@@ -336,7 +379,7 @@ class _InfoBanner extends StatelessWidget {
               children: [
                 Text(title,
                     style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 16)),
+                        fontWeight: FontWeight.w700, fontSize: 30)),
                 const SizedBox(height: 4),
                 Text(subtitle,
                     style: const TextStyle(
@@ -457,6 +500,32 @@ class _SeverityChips extends StatelessWidget {
   final Severity value;
   final ValueChanged<Severity> onChanged;
 
+  static Color _chipBg(Severity s) {
+    switch (s) {
+      case Severity.none:
+        return const Color(0xFFE8F5E9);
+      case Severity.slight:
+        return const Color(0xFFFFF8E1);
+      case Severity.moderate:
+        return const Color(0xFFFFF3E0);
+      case Severity.severe:
+        return const Color(0xFFFFEBEE);
+    }
+  }
+
+  static Color _chipFg(Severity s) {
+    switch (s) {
+      case Severity.none:
+        return const Color(0xFF2E7D32);
+      case Severity.slight:
+        return const Color(0xFFF9A825);
+      case Severity.moderate:
+        return const Color(0xFFE65100);
+      case Severity.severe:
+        return const Color(0xFFC62828);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final items = const [
@@ -474,9 +543,9 @@ class _SeverityChips extends StatelessWidget {
           label: Text(it.$2),
           selected: selected,
           onSelected: (_) => onChanged(it.$1),
-          selectedColor: const Color(0xFFF0F3FF),
+          selectedColor: _chipBg(it.$1),
           labelStyle: TextStyle(
-            color: selected ? const Color(0xFF3A66FF) : Colors.black87,
+            color: selected ? _chipFg(it.$1) : Colors.black87,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           ),
         );
