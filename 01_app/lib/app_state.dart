@@ -137,8 +137,11 @@ class MyAppState extends ChangeNotifier{
 
   Widget home_page = UserLoginPage();
 
-  void changeIndex(int value){
+  int symptomTabIndex = 0;
+
+  void changeIndex(int value, {int symptomTab = 0}){
     pageindex = value;
+    symptomTabIndex = symptomTab;
     notifyListeners();
   }
 

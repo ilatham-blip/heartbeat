@@ -83,7 +83,7 @@ class _EpisodeQuizState extends State<EpisodeQuiz> {
 
             _EPSectionCard(
               title: 'Date & Time',
-              leadingIcon: Icons.monitor_heart_outlined,
+              leadingIcon: Icons.calendar_month,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

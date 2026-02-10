@@ -18,7 +18,13 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        title: const Text('Health Monitor'),
+        backgroundColor: kBrandBlue,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          'Health Monitor',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         actions: [
           // Developer/Test button (as in your current code)
           IconButton(
@@ -89,7 +95,7 @@ class _HomePageState extends State<HomePage> {
                 leading:
                     const Icon(Icons.favorite_border, color: Colors.black87),
                 onTap: () {
-                  Provider.of<MyAppState>(context, listen: false).changeIndex(1);
+                  Provider.of<MyAppState>(context, listen: false).changeIndex(1, symptomTab: 1);
                 },
               ),
               const SizedBox(height: 12),

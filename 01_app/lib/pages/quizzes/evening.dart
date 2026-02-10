@@ -121,8 +121,8 @@ class _EveningQuizState extends State<EveningQuiz> {
           children: [
             // Top tabs live elsewhere; we render the body only
             _InfoBanner(
-              title: 'Evening Time Log (5pm - 5am)',
-              subtitle: 'Review your day',
+              title: 'Evening Time Log',
+              subtitle: 'Review your day (5pm - 5am)',
               icon: Icons.nightlight_round,
             ),
             const SizedBox(height: 12),
@@ -431,7 +431,7 @@ class _SectionCard extends StatelessWidget {
                       maxLines: 3,
                       overflow: TextOverflow.fade,
                       style: const TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -542,6 +542,7 @@ class _SeverityChips extends StatelessWidget {
         return ChoiceChip(
           label: Text(it.$2),
           selected: selected,
+          pressElevation: 1,
           onSelected: (_) => onChanged(it.$1),
           selectedColor: _chipBg(it.$1),
           labelStyle: TextStyle(

@@ -26,23 +26,44 @@ class _SymptomPage extends State<SymptomPage> {
           dailyWidget = EveningQuiz();
         }
 
-    return DefaultTabController(length: 3, child: 
-    Scaffold(
-      backgroundColor: kBackgroundColor,
-      appBar: AppBar(
-        title: Text("Symptom Logging"),
-        bottom: TabBar(tabs: [
-          Icon(Icons.sunny),
-          Icon(Icons.monitor_heart),
-          Icon(Icons.apple)
+    final tabIndex = appState.symptomTabIndex;
+    // Reset after consuming so it doesn't stick
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (appState.symptomTabIndex != 0) {
+        appState.symptomTabIndex = 0;
+      }
+    });
+
+    return DefaultTabController(
+      length: 3,
+      initialIndex: tabIndex,
+      child: Scaffold(
+        backgroundColor: kBackgroundColor,
+        appBar: AppBar(
+          backgroundColor: kBrandBlue,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: const Text(
+            'Symptom Logging',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          bottom: const TabBar(
+            indicatorColor: Colors.white,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            tabs: [
+              Tab(icon: Icon(Icons.sunny)),
+              Tab(icon: Icon(Icons.monitor_heart)),
+              Tab(icon: Icon(Icons.apple)),
             ],
-              ),
+          ),
+        ),
+        body: TabBarView(children: [
+          dailyWidget,
+          EpisodeQuiz(),
+          LifestyleQuiz()
+        ]),
       ),
-      body: TabBarView(children: [
-        dailyWidget,
-        EpisodeQuiz(),
-        LifestyleQuiz()
-      ])
-    ));
+    );
   }
 }

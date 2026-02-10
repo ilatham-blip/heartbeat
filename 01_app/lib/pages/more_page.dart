@@ -19,12 +19,13 @@ class MorePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        title: const Text(
-          "Health Monitor",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-        ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: kBrandBlue,
+        foregroundColor: Colors.white,
         elevation: 0,
+        title: const Text(
+          'More',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         centerTitle: false,
         automaticallyImplyLeading: false,
       ),

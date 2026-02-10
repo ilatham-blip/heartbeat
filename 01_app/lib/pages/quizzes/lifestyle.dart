@@ -502,7 +502,7 @@ class _InfoBanner extends StatelessWidget {
               children: [
                 Text(title,
                     style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: )),
+                        fontWeight: FontWeight.w700, fontSize: 30)),
                 const SizedBox(height: 4),
                 Text(subtitle,
                     style: const TextStyle(

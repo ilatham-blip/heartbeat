@@ -372,7 +372,7 @@ class _SectionCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(title,
                     style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w700)),
+                        fontSize: 16, fontWeight: FontWeight.w700)),
               ],
             ),
             const SizedBox(height: 12),
@@ -462,6 +462,7 @@ class _LabeledChipGroup<T> extends StatelessWidget {
         return ChoiceChip(
           label: Text(it.$2),
           selected: selected,
+          pressElevation: 0,
           onSelected: (_) => onChanged(it.$1),
           selectedColor: colors?.$1,
           labelStyle: TextStyle(

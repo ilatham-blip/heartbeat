@@ -18,6 +18,15 @@ class _TrackerPage extends State<TrackerPage> {
         
       return Scaffold(
         backgroundColor: kBackgroundColor,
+        appBar: AppBar(
+          backgroundColor: kBrandBlue,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: const Text(
+            'Health Insights',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
         body: LayoutBuilder(
           builder: (context, constraints) {
             return Column(children: [
