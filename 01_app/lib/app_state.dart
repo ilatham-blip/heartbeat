@@ -10,7 +10,7 @@ class EveningEntry {
     required this.dateTime,
     required this.heartRateBpm,
     required this.hrvMs,
-    required this.fatigueScore,
+    required this.fatiguescore,
     required this.baselineSymptoms,
     required this.notes,
   });
@@ -18,7 +18,7 @@ class EveningEntry {
   final DateTime dateTime;
   final int heartRateBpm;
   final int hrvMs;
-  final int fatigueScore;            // 0..100
+  final int fatiguescore; // 0..100
   final List<String> baselineSymptoms;
   final String notes;
 }
@@ -77,6 +77,7 @@ class MyAppState extends ChangeNotifier{
   final nausea = <double>[];
   final users = ["iris", "peter"];
   int pageindex = 0;
+
 
   Map<String, double> episodeScores = {
     "Dizziness when standing": 0,
@@ -174,7 +175,7 @@ class MyAppState extends ChangeNotifier{
       dateTime: dt,
       heartRateBpm: heartRateBpm,
       hrvMs: hrvMs,
-      fatigueScore: fatigueScore,
+      fatiguescore: fatigueScore,
       baselineSymptoms: baselineSymptoms,
       notes: notes,
     ));
