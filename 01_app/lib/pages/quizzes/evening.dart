@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:heartbeat/app_theme.dart';
 import 'package:provider/provider.dart';
-import 'package:heartbeat/app_state.dart';
+import 'package:heartbeat/app_state.dart'; // for MyAppState and Severity enum
 
 class EveningQuiz extends StatefulWidget {
   const EveningQuiz({super.key});
@@ -10,26 +10,37 @@ class EveningQuiz extends StatefulWidget {
 }
 
 class _EveningQuizState extends State<EveningQuiz> {
+  // Date & time
   DateTime _date = DateTime.now();
   TimeOfDay _time = TimeOfDay.now();
 
-  double _heartRate = 70; // bpm
-  double _hrv = 50;       // ms
-  double _fatigue = 0;    // 0..100 (None..Severe)
+  // Abnormal fatigue (chips)
+  Severity _fatigue = Severity.none;
 
-  final TextEditingController _notesCtrl = TextEditingController();
+  // Baseline symptoms
+  final Set<String> _selectedBaseline = <String>{};
 
   final List<String> _baselineOptions = const [
+    'Dizziness, feeling that you are going to faint after being upright',
+    'Palpitations, high pulse, or feeling heart beating irregularly',
+    'Chest pain',
+    'Headache',
+    'Concentration difficulties and/or problems with thinking',
     'Muscle pain',
     'Nausea',
     'Gastrointestinal problems (stomach-ache, diarrhoea, constipation)',
     'Difficulties in concentration',
     'Difficult breathing/dyspnoea, both at effort and rest',
     'Temperature Changes (feeling abnormally hot or cold)',
-    'Dizziness, feeling that you are going to faint after being upright',
-    'Palpitations, high pulse, or feeling heart beating irregularly',
   ];
-  final Set<String> _selectedBaseline = {};
+
+  final TextEditingController _notesCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _notesCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -38,9 +49,7 @@ class _EveningQuizState extends State<EveningQuiz> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
-    if (picked != null) {
-      setState(() => _date = picked);
-    }
+    if (picked != null) setState(() => _date = picked);
   }
 
   Future<void> _pickTime() async {
@@ -48,178 +57,232 @@ class _EveningQuizState extends State<EveningQuiz> {
       context: context,
       initialTime: _time,
     );
-    if (picked != null) {
-      setState(() => _time = picked);
+    if (picked != null) setState(() => _time = picked);
+  }
+  int fatigueToScore(Severity s) {
+    switch (s) {
+      case Severity.none:
+        return 0;
+      case Severity.slight:
+        return 25;
+      case Severity.moderate:
+        return 50;
+      case Severity.severe:
+        return 75; // or 100 if you prefer a 0–100 scale
     }
+  }
+  // Optional: add "Abnormal Fatigue" to baseline if level > None
+  List<String> _finalBaseline() {
+    final list = _selectedBaseline.toList();
+    if (_fatigue != Severity.none && !list.contains('Abnormal Fatigue')) {
+      list.add('Abnormal Fatigue');
+    } else if (_fatigue == Severity.none) {
+      list.remove('Abnormal Fatigue');
+    }
+    return list;
   }
 
   void _save() {
-    final appState = Provider.of<MyAppState>(context, listen: false);
+    final app = context.read<MyAppState>();
 
-    // Adjust to your app_state API; example:
-    appState.saveEveningReview(
+    // If your saveEveningReview still requires HR and HRV, keep these 0s.
+    // If you removed them from MyAppState, delete heartRateBpm/hrvMs below.
+    app.saveEveningReview(
       date: _date,
       time: _time,
-      heartRateBpm: _heartRate.round(),
-      hrvMs: _hrv.round(),
-      fatigueScore: _fatigue.round(),
-      baselineSymptoms: _selectedBaseline.toList(),
+      heartRateBpm: 0, // remove if not required
+      hrvMs: 0,        // remove if not required
+      fatigueScore: fatigueToScore(_fatigue), // Convert enum to 0, 25, 50, 75
+      baselineSymptoms: _finalBaseline(),
       notes: _notesCtrl.text.trim(),
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Evening review saved')),
     );
+    setState(() {
+      _notesCtrl.clear();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final app = context.watch<MyAppState>(); // used for recent entries
 
-    return Scaffold(
-      backgroundColor: kBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Health Monitor'),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Info banner
-              _InfoBanner(
-                title: 'Evening Time (5pm - 5am)',
-                subtitle: 'Review your day',
-                icon: Icons.nightlight_round,
-              ),
-              const SizedBox(height: 12),
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top tabs live elsewhere; we render the body only
+            _InfoBanner(
+              title: 'Evening Time (5pm - 5am)',
+              subtitle: 'Review your day',
+              icon: Icons.nightlight_round,
+            ),
+            const SizedBox(height: 12),
 
-              // Evening Review card
-              _SectionCard(
-                title: 'Evening Review',
-                leadingIcon: Icons.nightlight,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Date & Time pickers
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _PickerTile(
-                            label: 'Date',
-                            value:
-                                '${_date.month.toString().padLeft(2, '0')}/${_date.day.toString().padLeft(2, '0')}/${_date.year}',
-                            icon: Icons.calendar_today,
-                            onTap: _pickDate,
-                          ),
+            _SectionCard(
+              title: 'Evening Review',
+              leadingIcon: Icons.nightlight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Date & Time pickers
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _PickerTile(
+                          label: 'Date',
+                          value:
+                              '${_date.month.toString().padLeft(2, '0')}/${_date.day.toString().padLeft(2, '0')}/${_date.year}',
+                          icon: Icons.calendar_today,
+                          onTap: _pickDate,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _PickerTile(
-                            label: 'Time',
-                            value: _formatTime(_time),
-                            icon: Icons.access_time,
-                            onTap: _pickTime,
-                          ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _PickerTile(
+                          label: 'Time',
+                          value: _formatTime(_time),
+                          icon: Icons.access_time,
+                          onTap: _pickTime,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
 
+                  // Abnormal Fatigue label + chips
+                  Row(
+                    children: [
+                      const Text(
+                        'Abnormal Fatigue:',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _fatigueLabel(_fatigue),
+                        style: const TextStyle(color: Color(0xFF3A66FF)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _SeverityChips(
+                    value: _fatigue,
+                    onChanged: (s) => setState(() => _fatigue = s),
+                  ),
+                  const SizedBox(height: 16),
 
-
-                  
-                    // Fatigue
-                    _LabeledSlider(
-                      label: 'Abnormal Fatigue: ${_fatigueLabel(_fatigue)}',
-                      value: _fatigue,
-                      min: 0,
-                      max: 100,
-                      onChanged: (v) => setState(() => _fatigue = v),
-                      minLabel: 'None',
-                      maxLabel: 'Severe',
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Baseline symptoms
-                    Text('Baseline Symptoms',
-                        style: textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _baselineOptions.map((label) {
-                        final selected = _selectedBaseline.contains(label);
-                        return FilterChip(
-                          label: Text(label),
-                          selected: selected,
-                          onSelected: (isSel) {
+                  const Text('Baseline Symptoms',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  Column(
+                    children: _baselineOptions.map((label) {
+                      final selected = _selectedBaseline.contains(label);
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: InkWell(
+                          onTap: () {
                             setState(() {
-                              if (isSel) {
-                                _selectedBaseline.add(label);
-                              } else {
+                              if (selected) {
                                 _selectedBaseline.remove(label);
+                              } else {
+                                _selectedBaseline.add(label);
                               }
                             });
                           },
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 16),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: selected
+                                    ? const Color(0xFF3A66FF)
+                                    : Colors.black12,
+                                width: selected ? 2 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    label,
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
 
-                    // Additional notes
-                    Text('Additional Notes',
-                        style: textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _notesCtrl,
-                      maxLines: 4,
-                      decoration: const InputDecoration(
-                        hintText: 'How was your day overall?',
-                        border: OutlineInputBorder(),
+                  const Text('Additional Notes',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _notesCtrl,
+                    maxLines: 4,
+                    decoration: const InputDecoration(
+                      hintText: 'How was your day overall?',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4F50FF),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'Save Evening Review',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w700),
                       ),
                     ),
-                    const SizedBox(height: 16),
-
-                    // Save button
-                    HeartbeatButton(
-                      label: 'Save Evening Review',
-                      onPressed: _save,
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
+            ),
+            const SizedBox(height: 12),
 
-              // Recent entries placeholder (you can bind to Provider data)
-              _SectionCard(
-                title: 'Recent Entries',
-                leadingIcon: Icons.history,
-                child: Column(
-                  children: [
-                    _RecentEntryTile(
-                      dateLabel: '1/17/2026',
-                      timeLabel: '20:00',
-                      heartRate: '70 bpm',
-                      hrv: '50 ms',
-                      fatigue: 'None',
+            // Recent Entries (simple)
+            _SectionCard(
+              title: 'Recent Entries',
+              leadingIcon: Icons.history,
+              child: (app.eveningEntries.isEmpty)
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 6),
+                      child: Text(
+                        'No evening entries yet. Start logging!',
+                        style: TextStyle(color: Colors.black54),
+                      ),
+                    )
+                  : Column(
+                      children: [
+                        for (final e in app.eveningEntries.take(3))
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _RecentEveningTile(entry: e),
+                          ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    _RecentEntryTile(
-                      dateLabel: '1/16/2026',
-                      timeLabel: '20:05',
-                      heartRate: '68 bpm',
-                      hrv: '48 ms',
-                      fatigue: 'Mild',
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -232,12 +295,17 @@ class _EveningQuizState extends State<EveningQuiz> {
     return '$h:$m $suffix';
   }
 
-  String _fatigueLabel(double v) {
-    if (v < 20) return 'None';
-    if (v < 40) return 'Mild';
-    if (v < 60) return 'Moderate';
-    if (v < 80) return 'High';
-    return 'Severe';
+  String _fatigueLabel(Severity s) {
+    switch (s) {
+      case Severity.none:
+        return 'None';
+      case Severity.slight:
+        return 'Slight';
+      case Severity.moderate:
+        return 'Moderate';
+      case Severity.severe:
+        return 'Severe';
+    }
   }
 }
 
@@ -300,29 +368,42 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: Colors.black12.withOpacity(0.06)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(leadingIcon, color: const Color(0xFF4F7CFF)),
-                const SizedBox(width: 8),
-                Text(title,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w700)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            child,
-          ],
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: Colors.black12.withOpacity(0.06)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(leadingIcon, color: const Color(0xFF4F7CFF)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      title,
+                      softWrap: true,
+                      maxLines: 3,
+                      overflow: TextOverflow.fade,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              child,
+            ],
+          ),
         ),
       ),
     );
@@ -372,71 +453,52 @@ class _PickerTile extends StatelessWidget {
   }
 }
 
-class _LabeledSlider extends StatelessWidget {
-  const _LabeledSlider({
-    required this.label,
+class _SeverityChips extends StatelessWidget {
+  const _SeverityChips({
     required this.value,
-    required this.min,
-    required this.max,
     required this.onChanged,
-    this.minLabel,
-    this.maxLabel,
   });
 
-  final String label;
-  final double value;
-  final double min;
-  final double max;
-  final ValueChanged<double> onChanged;
-  final String? minLabel;
-  final String? maxLabel;
+  final Severity value;
+  final ValueChanged<Severity> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style:
-                const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-        Slider(
-          value: value,
-          min: min,
-          max: max,
-          activeColor: const Color(0xFF4F7CFF),
-          onChanged: onChanged,
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(minLabel ?? '$min',
-                style: const TextStyle(color: Colors.black54, fontSize: 12)),
-            Text(maxLabel ?? '$max',
-                style: const TextStyle(color: Colors.black54, fontSize: 12)),
-          ],
-        ),
-      ],
+    final items = const [
+      (Severity.none, 'None'),
+      (Severity.slight, 'Slight'),
+      (Severity.moderate, 'Moderate'),
+      (Severity.severe, 'Severe'),
+    ];
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: items.map((it) {
+        final selected = it.$1 == value;
+        return ChoiceChip(
+          label: Text(it.$2),
+          selected: selected,
+          onSelected: (_) => onChanged(it.$1),
+          selectedColor: const Color(0xFFF0F3FF),
+          labelStyle: TextStyle(
+            color: selected ? const Color(0xFF3A66FF) : Colors.black87,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        );
+      }).toList(),
     );
   }
 }
 
-class _RecentEntryTile extends StatelessWidget {
-  const _RecentEntryTile({
-    required this.dateLabel,
-    required this.timeLabel,
-    required this.heartRate,
-    required this.hrv,
-    required this.fatigue,
-  });
-
-  final String dateLabel;
-  final String timeLabel;
-  final String heartRate;
-  final String hrv;
-  final String fatigue;
+class _RecentEveningTile extends StatelessWidget {
+  const _RecentEveningTile({required this.entry});
+  final EveningEntry entry;
 
   @override
   Widget build(BuildContext context) {
+    final dt = entry.dateTime;
+    final dateLabel = '${dt.month}/${dt.day}/${dt.year}';
+    final timeLabel = _format(dt);
     return Material(
       color: Colors.white,
       shape: RoundedRectangleBorder(
@@ -457,24 +519,27 @@ class _RecentEntryTile extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            _kv('Heart Rate', heartRate),
-            _kv('HRV', hrv),
-            _kv('Fatigue', fatigue),
+            Row(
+              children: [
+                const Text('Symptoms', style: TextStyle(color: Colors.black87)),
+                const Spacer(),
+                Text(
+                  '${entry.baselineSymptoms.length} selected',
+                  style: const TextStyle(
+                      color: Color(0xFF3A66FF), fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _kv(String k, String v) {
-    return Row(
-      children: [
-        Text(k, style: const TextStyle(color: Colors.black87)),
-        const Spacer(),
-        Text(v,
-            style: const TextStyle(
-                color: Color(0xFF4F7CFF), fontWeight: FontWeight.w600)),
-      ],
-    );
+  static String _format(DateTime dt) {
+    final h12 = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final m = dt.minute.toString().padLeft(2, '0');
+    final suffix = dt.hour < 12 ? 'am' : 'pm';
+    return '$h12:$m $suffix';
   }
 }
