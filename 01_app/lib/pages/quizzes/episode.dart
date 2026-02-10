@@ -367,6 +367,32 @@ class _SeverityChipsRow extends StatelessWidget {
   final Severity value;
   final ValueChanged<Severity> onChanged;
 
+  static Color _chipBg(Severity s) {
+    switch (s) {
+      case Severity.none:
+        return const Color(0xFFE8F5E9); // green tint
+      case Severity.slight:
+        return const Color(0xFFFFF8E1); // amber tint
+      case Severity.moderate:
+        return const Color(0xFFFFF3E0); // orange tint
+      case Severity.severe:
+        return const Color(0xFFFFEBEE); // red tint
+    }
+  }
+
+  static Color _chipFg(Severity s) {
+    switch (s) {
+      case Severity.none:
+        return const Color(0xFF2E7D32); // green
+      case Severity.slight:
+        return const Color(0xFFF9A825); // amber
+      case Severity.moderate:
+        return const Color(0xFFE65100); // orange
+      case Severity.severe:
+        return const Color(0xFFC62828); // red
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final items = const [
@@ -384,9 +410,9 @@ class _SeverityChipsRow extends StatelessWidget {
           label: Text(it.$2),
           selected: selected,
           onSelected: (_) => onChanged(it.$1),
-          selectedColor: const Color(0xFFFDE7E7),
+          selectedColor: _chipBg(it.$1),
           labelStyle: TextStyle(
-            color: selected ? const Color(0xFFB00020) : Colors.black87,
+            color: selected ? _chipFg(it.$1) : Colors.black87,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           ),
         );

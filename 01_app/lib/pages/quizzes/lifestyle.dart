@@ -3,6 +3,7 @@ import 'package:heartbeat/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:heartbeat/app_state.dart';
 import 'package:heartbeat/widgets/custom_slider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LifestyleQuiz extends StatefulWidget {
   const LifestyleQuiz({super.key});
@@ -30,7 +31,28 @@ class _LifestyleQuizState extends State<LifestyleQuiz> {
   double _exIntense = 0;         // 0..180
   double _stressLevel = 0;       // 0..3
 
+  String? _gender;
+
   final TextEditingController _notesCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGender();
+  }
+
+  Future<void> _loadGender() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    final profile = await Supabase.instance.client
+        .from('user_profiles')
+        .select('gender')
+        .eq('id', user.id)
+        .maybeSingle();
+    if (profile != null && mounted) {
+      setState(() => _gender = profile['gender'] as String?);
+    }
+  }
 
   @override
   void dispose() {
@@ -162,11 +184,7 @@ class _LifestyleQuizState extends State<LifestyleQuiz> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        Text(
-                          'Duration: ${_standingMins.round()} minutes',
-                          style: const TextStyle(color: Colors.green),
-                        ),
-                        const SizedBox(height: 6),
+
                         CustomSlider(
                             text: 'Standing/Sitting Mins',
                             value: _standingMins,
@@ -237,11 +255,7 @@ class _LifestyleQuizState extends State<LifestyleQuiz> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Water today: ${_waterLitres.toStringAsFixed(2)} litres',
-                    style: const TextStyle(color: Colors.green),
-                  ),
-                  const SizedBox(height: 6),
+
                   CustomSlider(
                       text: 'Water (Litres)',
                       value: _waterLitres,
@@ -266,11 +280,7 @@ class _LifestyleQuizState extends State<LifestyleQuiz> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Units of alcohol: ${_alcoholUnits.round()}',
-                    style: const TextStyle(color: Colors.green),
-                  ),
-                  const SizedBox(height: 6),
+
                   CustomSlider(
                     text: 'Alcohol Units',
                     value: _alcoholUnits,
@@ -310,9 +320,7 @@ class _LifestyleQuizState extends State<LifestyleQuiz> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Mild
-                  Text('Mild (can talk): ${_exMild.round()} mins',
-                      style: const TextStyle(color: Colors.green)),
-                  const SizedBox(height: 6),
+
                   CustomSlider(
                     text: 'Exercise Mild',
                     value: _exMild,
@@ -328,9 +336,7 @@ class _LifestyleQuizState extends State<LifestyleQuiz> {
                   const SizedBox(height: 12),
 
                   // Moderate
-                  Text('Moderate (just about talk): ${_exModerate.round()} mins',
-                      style: const TextStyle(color: Colors.green)),
-                  const SizedBox(height: 6),
+
                   CustomSlider(
                     text: 'Exercise Moderate',
                     value: _exModerate,
@@ -346,9 +352,7 @@ class _LifestyleQuizState extends State<LifestyleQuiz> {
                   const SizedBox(height: 12),
 
                   // Intense
-                  Text('Intense: ${_exIntense.round()} mins',
-                      style: const TextStyle(color: Colors.green)),
-                  const SizedBox(height: 6),
+
                   CustomSlider(
                     text: 'Exercise Intense',
                     value: _exIntense,
@@ -383,19 +387,21 @@ class _LifestyleQuizState extends State<LifestyleQuiz> {
             ),
             const SizedBox(height: 12),
 
-            // Being on your period
-            _SectionCard(
-              title: 'Being on your period',
-              leadingIcon: Icons.bloodtype_outlined,
-              child: CheckboxListTile(
-                value: _onPeriod,
-                onChanged: (v) => setState(() => _onPeriod = v ?? false),
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.trailing,
-                title: const Text(''),
+            // On your period (hidden for male users)
+            if (_gender != 'Male') ...[
+              _SectionCard(
+                title: 'On your period',
+                leadingIcon: Icons.bloodtype_outlined,
+                child: CheckboxListTile(
+                  value: _onPeriod,
+                  onChanged: (v) => setState(() => _onPeriod = v ?? false),
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.trailing,
+                  title: const Text(''),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
+            ],
 
             // Stress
             _SectionCard(
@@ -404,9 +410,7 @@ class _LifestyleQuizState extends State<LifestyleQuiz> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Stress Level: ${_stressLevel.round()} (0–3)',
-                      style: const TextStyle(color: Colors.green)),
-                  const SizedBox(height: 6),
+
                   CustomSlider(
                     text: 'Stress Level (0–3)',
                     value: _stressLevel,

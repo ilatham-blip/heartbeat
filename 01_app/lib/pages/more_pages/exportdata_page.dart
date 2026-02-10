@@ -73,14 +73,6 @@ class _ExportDataPageState extends State<ExportDataPage> {
                   description: 'Recorded symptom flare-ups',
                   dataType: 'episodes',
                 ),
-                const Divider(height: 1),
-                _buildExportOption(
-                  icon: Icons.favorite,
-                  iconColor: Colors.pink,
-                  title: 'Heart Rate Measurements',
-                  description: 'HRV metrics and analysis results',
-                  dataType: 'measurements',
-                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -457,14 +449,7 @@ class _ExportDataPageState extends State<ExportDataPage> {
         exportData['pots_episodes'] = episodes;
       }
 
-      if (dataType == 'all' || dataType == 'measurements') {
-        final measurements = await Supabase.instance.client
-            .from('measurements')
-            .select()
-            .eq('user_id', user.id)
-            .order('recorded_at', ascending: false);
-        exportData['measurements'] = measurements;
-      }
+
 
       // Show export result
       if (mounted) {
