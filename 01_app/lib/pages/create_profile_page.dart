@@ -333,7 +333,7 @@ class _CreateProfilePageState extends State<CreateProfilePage> {
           ),
           const SizedBox(height: 16),
           _buildDropdown(
-            label: 'Gender',
+            label: 'Sex',
             value: _selectedGender,
             items: _genderOptions,
             onChanged: (val) => setState(() => _selectedGender = val),
