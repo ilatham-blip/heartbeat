@@ -190,8 +190,9 @@ class _CreateProfilePageState extends State<CreateProfilePage> {
       if (mounted) {
         final appState = Provider.of<MyAppState>(context, listen: false);
         appState.changeIndex(0);
-        Navigator.of(context).pushReplacement(
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => AppLayout()),
+          (route) => false,
         );
       }
     } catch (e) {

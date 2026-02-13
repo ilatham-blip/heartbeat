@@ -292,25 +292,35 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
     }
   }
 
-  void _saveLog() {
+  void _saveLog() async {
     final hr = int.tryParse(_hrCtrl.text) ?? 0;
     final hrv = int.tryParse(_hrvCtrl.text) ?? 0;
 
     final appState = Provider.of<MyAppState>(context, listen: false);
-    appState.saveEveningReview(
-      date: _date,
-      time: _time,
-      heartRateBpm: hr,
-      hrvMs: hrv,
-      fatigueScore: _fatigueScore ?? 0,
-      baselineSymptoms: _selectedSymptoms.toList(),
-      notes: _notesCtrl.text.trim(),
-    );
+    try {
+      await appState.saveEveningReview(
+        date: _date,
+        time: _time,
+        heartRateBpm: hr,
+        hrvMs: hrv,
+        fatigueScore: _fatigueScore ?? 0,
+        baselineSymptoms: _selectedSymptoms.toList(),
+        notes: _notesCtrl.text.trim(),
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Evening log saved ✓')),
-    );
-    Navigator.of(context).pop();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Evening log saved ✓')),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving log: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   // ─── Build ─────────────────────────────────────────────────

@@ -277,21 +277,31 @@ class _MorningSurveyScreenState extends State<_MorningSurveyScreen> {
     }
   }
 
-  void _saveLog() {
+  void _saveLog() async {
     final appState = Provider.of<MyAppState>(context, listen: false);
-    appState.saveMorningCheckIn(
-      date: _date,
-      time: _time,
-      sleepQuality: _sleep,
-      fatigue: _fatigue,
-      dizzinessStanding: _dizziness,
-      tachycardia: _tachycardia,
-      notes: _notesCtrl.text.trim(),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Morning log saved ✓')),
-    );
-    Navigator.of(context).pop();
+    try {
+      await appState.saveMorningCheckIn(
+        date: _date,
+        time: _time,
+        sleepQuality: _sleep,
+        fatigue: _fatigue,
+        dizzinessStanding: _dizziness,
+        tachycardia: _tachycardia,
+        notes: _notesCtrl.text.trim(),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Morning log saved ✓')),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving log: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   // ─── Build ────────────────────────────────────────────────

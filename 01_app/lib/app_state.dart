@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:heartbeat/pages/app_layout.dart';
 import 'package:heartbeat/pages/user_login_page.dart';
+import 'package:heartbeat/services/database_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Shared enums for morning page
 enum SleepQuality { awful, bad, fair, good }
@@ -183,6 +185,8 @@ class LifestyleEntry {
   final String notes;
 }
 class MyAppState extends ChangeNotifier{
+  final DatabaseService _databaseService = DatabaseService();
+
   final dizziness = <double>[];
   final nausea = <double>[];
   final users = ["iris", "peter"];
@@ -203,6 +207,31 @@ class MyAppState extends ChangeNotifier{
   void updateEpisodeScore(String symptom, double newValue) {
     episodeScores[symptom] = newValue;
     notifyListeners(); 
+  }
+
+  Future<void> saveEpisode({
+    required DateTime date,
+    required TimeOfDay time,
+    required Map<String, double> scores,
+    required String notes,
+  }) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      await _databaseService.saveEpisode({
+        'user_id': user.id,
+        'date': date.toIso8601String(),
+        'time': '${time.hour}:${time.minute}',
+        'scores': scores,
+        'notes': notes,
+      });
+    }
+    // Clear local scores if needed, or keep them? 
+    // Usually we clear draft but maybe not scores if they are "current state"? 
+    // Actually per design, episode is a log, so we should probably reset them.
+    for (final key in episodeScores.keys) {
+      episodeScores[key] = 0;
+    }
+    notifyListeners();
   }
 
   EpisodeDraft? episodeDraft;
@@ -287,7 +316,7 @@ class MyAppState extends ChangeNotifier{
   final List<EveningEntry> eveningEntries = [];
   EveningDraft? eveningDraft;
 
-  void saveEveningReview({
+  Future<void> saveEveningReview({
     required DateTime date,
     required TimeOfDay time,
     required int heartRateBpm,
@@ -295,7 +324,7 @@ class MyAppState extends ChangeNotifier{
     required int fatigueScore,
     required List<String> baselineSymptoms,
     required String notes,
-  }) {
+  }) async {
     final dt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
     eveningEntries.insert(0, EveningEntry(
       dateTime: dt,
@@ -307,6 +336,19 @@ class MyAppState extends ChangeNotifier{
     ));
     eveningDraft = null;
     notifyListeners();
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      await _databaseService.saveEveningCheckIn({
+        'user_id': user.id,
+        'date': date.toIso8601String(),
+        'heart_rate': heartRateBpm,
+        'hrv': hrvMs,
+        'fatigue_score': fatigueScore,
+        'symptoms': baselineSymptoms,
+        'notes': notes,
+      });
+    }
   }
 
   void pauseEveningReview(EveningDraft draft) {
@@ -324,7 +366,7 @@ class MyAppState extends ChangeNotifier{
   MorningDraft? morningDraft;
 
   // Save method used by MorningQuiz
-  void saveMorningCheckIn({
+  Future<void> saveMorningCheckIn({
     required DateTime date,
     required TimeOfDay time,
     required SleepQuality sleepQuality,
@@ -332,7 +374,7 @@ class MyAppState extends ChangeNotifier{
     required Severity dizzinessStanding,
     required Severity tachycardia,
     required String notes,
-  }) {
+  }) async {
     final dt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
     _morningEntries.insert(
       0,
@@ -347,6 +389,19 @@ class MyAppState extends ChangeNotifier{
     );
     morningDraft = null;
     notifyListeners();
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      await _databaseService.saveMorningCheckIn({
+        'user_id': user.id,
+        'date': date.toIso8601String(),
+        'sleep_quality': sleepQuality.index,
+        'fatigue': fatigue.index,
+        'dizziness': dizzinessStanding.index,
+        'tachycardia': tachycardia.index,
+        'notes': notes,
+      });
+    }
   }
 
   void pauseMorningCheckIn(MorningDraft draft) {
@@ -372,7 +427,7 @@ class MyAppState extends ChangeNotifier{
       notifyListeners();
     }
 
-    void saveLifestyleEntry({
+    Future<void> saveLifestyleEntry({
       required DateTime date,
       required bool hotPlace,
       required bool refinedCarbs,
@@ -387,7 +442,7 @@ class MyAppState extends ChangeNotifier{
       required bool onPeriod,
       required int stressLevel,
       required String notes,
-    }) {
+    }) async {
       _lifestyleEntries.insert(
         0,
         LifestyleEntry(
@@ -409,5 +464,26 @@ class MyAppState extends ChangeNotifier{
       );
       lifestyleDraft = null;
       notifyListeners();
+
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        await _databaseService.saveLifestyleLog({
+          'user_id': user.id,
+          'date': date.toIso8601String(),
+          'hot_place': hotPlace,
+          'refined_carbs': refinedCarbs,
+          'standing_mins': standingMins,
+          'carbs_grams': carbsGrams,
+          'water_litres': waterLitres,
+          'alcohol_units': alcoholUnits,
+          'rest_too_much': restTooMuch,
+          'ex_mild': exMildMins,
+          'ex_moderate': exModerateMins,
+          'ex_intense': exIntenseMins,
+          'on_period': onPeriod,
+          'stress_level': stressLevel,
+          'notes': notes,
+        });
+      }
     }
 }

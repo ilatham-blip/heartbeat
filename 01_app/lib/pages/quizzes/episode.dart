@@ -290,7 +290,7 @@ class _EpisodeSurveyScreenState extends State<_EpisodeSurveyScreen> {
     }
   }
 
-  void _saveLog() {
+  void _saveLog() async {
     // Push scores to appState
     final appState = Provider.of<MyAppState>(context, listen: false);
     for (final entry in _scores.entries) {
@@ -298,12 +298,29 @@ class _EpisodeSurveyScreenState extends State<_EpisodeSurveyScreen> {
       final val = entry.value == null ? 0.0 : _severityToValue(entry.value!).toDouble();
       appState.updateEpisodeScore(entry.key, val);
     }
-    appState.clearEpisodeDraft();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('POTS episode logged ✓')),
-    );
-    Navigator.of(context).pop();
+    
+    try {
+      await appState.saveEpisode(
+        date: _date,
+        time: _time,
+        scores: appState.episodeScores,
+        notes: _notesCtrl.text.trim(),
+      );
+      
+      if (mounted) {
+        appState.clearEpisodeDraft();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('POTS episode logged ✓')),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Error logging episode: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   // Severity ↔ integer

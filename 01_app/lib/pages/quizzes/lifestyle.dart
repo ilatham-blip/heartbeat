@@ -280,29 +280,39 @@ class _LifestyleSurveyScreenState extends State<_LifestyleSurveyScreen> {
     setState(() => _currentPage--);
   }
 
-  void _saveLog() {
+  void _saveLog() async {
     final app = context.read<MyAppState>();
-    app.saveLifestyleEntry(
-      date: _date,
-      hotPlace: _hotPlace ?? false,
-      refinedCarbs: _refinedCarbs ?? false,
-      standingMins: _standingMins.round(),
-      carbsGrams: _carbsGrams.round(),
-      waterLitres: double.parse(_waterLitres.toStringAsFixed(2)),
-      alcoholUnits: _alcoholUnits.round(),
-      restTooMuch: _restTooMuch ?? false,
-      exMildMins: _exMild.round(),
-      exModerateMins: _exModerate.round(),
-      exIntenseMins: _exIntense.round(),
-      onPeriod: _onPeriod ?? false,
-      stressLevel: (_stressLevel ?? 0).round(),
-      notes: _notesCtrl.text.trim(),
-    );
+    try {
+      await app.saveLifestyleEntry(
+        date: _date,
+        hotPlace: _hotPlace ?? false,
+        refinedCarbs: _refinedCarbs ?? false,
+        standingMins: _standingMins.round(),
+        carbsGrams: _carbsGrams.round(),
+        waterLitres: double.parse(_waterLitres.toStringAsFixed(2)),
+        alcoholUnits: _alcoholUnits.round(),
+        restTooMuch: _restTooMuch ?? false,
+        exMildMins: _exMild.round(),
+        exModerateMins: _exModerate.round(),
+        exIntenseMins: _exIntense.round(),
+        onPeriod: _onPeriod ?? false,
+        stressLevel: (_stressLevel ?? 0).round(),
+        notes: _notesCtrl.text.trim(),
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Lifestyle entry saved ✓')),
-    );
-    Navigator.of(context).pop();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lifestyle entry saved ✓')),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving log: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
 
