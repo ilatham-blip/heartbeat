@@ -30,6 +30,13 @@ void main() async {
       ],
       child: MaterialApp(
         title: 'Heartbeat',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF1E40AF),
+            surface: const Color(0xFFFAFAFA),
+          ),
+          scaffoldBackgroundColor: const Color(0xFFFAFAFA),
+        ),
         home: AuthGate(), // <--- Point 'home' to the Gatekeeper
       ),
     ),
@@ -46,7 +53,11 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Heartbeat App',
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF1E40AF),
+            surface: const Color(0xFFFAFAFA),
+          ),
+          scaffoldBackgroundColor: const Color(0xFFFAFAFA),
         ),
         home: MorePage(),
       ),

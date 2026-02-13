@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:heartbeat/app_theme.dart';
 import 'package:provider/provider.dart';
-import 'package:heartbeat/app_state.dart'; // uses Severity enum and MyAppState
+import 'package:heartbeat/app_state.dart';
+import 'package:heartbeat/widgets/quiz_bottom_bar.dart';
+import 'package:heartbeat/widgets/quiz_next_button.dart';
 
+/// POTS Episode log: landing page (embedded in tabs) + full-screen paged survey.
 class EpisodeQuiz extends StatefulWidget {
   const EpisodeQuiz({super.key});
   @override
@@ -10,14 +12,167 @@ class EpisodeQuiz extends StatefulWidget {
 }
 
 class _EpisodeQuizState extends State<EpisodeQuiz> {
-  // Date & time
+  void _startSurvey() {
+    final appState = Provider.of<MyAppState>(context, listen: false);
+    appState.clearEpisodeDraft();
+    // Reset all episode scores
+    for (final key in appState.episodeScores.keys.toList()) {
+      appState.episodeScores[key] = 0;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const _EpisodeSurveyScreen()),
+    );
+  }
+
+  void _continueSurvey() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const _EpisodeSurveyScreen()),
+    );
+  }
+
+  void _restartSurvey() {
+    final appState = Provider.of<MyAppState>(context, listen: false);
+    appState.clearEpisodeDraft();
+    for (final key in appState.episodeScores.keys.toList()) {
+      appState.episodeScores[key] = 0;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const _EpisodeSurveyScreen()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = Provider.of<MyAppState>(context);
+    final draft = appState.episodeDraft;
+    final hasDraft = draft != null;
+    final now = DateTime.now();
+    final timeStr = _formatTime(TimeOfDay.now());
+    final dateStr =
+        '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header banner ──
+            _InfoBanner(
+              title: 'POTS Episode Log',
+              subtitle: 'Log as often as you need',
+              icon: Icons.monitor_heart_outlined,
+            ),
+            const SizedBox(height: 12),
+
+            // ── Date & Time ──
+            _SectionCard(
+              title: 'Date & Time',
+              leadingIcon: Icons.calendar_today,
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today,
+                      size: 18, color: Colors.black54),
+                  const SizedBox(width: 8),
+                  Text(dateStr, style: const TextStyle(fontSize: 15)),
+                  const Spacer(),
+                  const Icon(Icons.access_time,
+                      size: 18, color: Colors.black54),
+                  const SizedBox(width: 8),
+                  Text(timeStr, style: const TextStyle(fontSize: 15)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ── Action buttons ──
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: hasDraft ? _continueSurvey : _startSurvey,
+                icon: Icon(
+                    hasDraft ? Icons.play_arrow : Icons.play_arrow_rounded),
+                label: Text(hasDraft ? 'Continue Survey' : 'Start Survey'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFCC2B2B),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  textStyle: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+            if (hasDraft) ...[
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _restartSurvey,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Restart Survey'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFCC2B2B),
+                    side: const BorderSide(color: Color(0xFFCC2B2B)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    textStyle: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+
+            // ── Recent episodes placeholder ──
+            _SectionCard(
+              title: 'Recent Episodes',
+              leadingIcon: Icons.history,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text('No recent episodes yet. Start logging!',
+                    style: TextStyle(color: Colors.black45)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _formatTime(TimeOfDay t) {
+    final h = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+    final m = t.minute.toString().padLeft(2, '0');
+    final suffix = t.period == DayPeriod.am ? 'am' : 'pm';
+    return '$h:$m $suffix';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Full-screen survey route
+// ═══════════════════════════════════════════════════════════
+
+class _EpisodeSurveyScreen extends StatefulWidget {
+  const _EpisodeSurveyScreen();
+  @override
+  State<_EpisodeSurveyScreen> createState() => _EpisodeSurveyScreenState();
+}
+
+class _EpisodeSurveyScreenState extends State<_EpisodeSurveyScreen> {
+  int _currentPage = 0;
+
+  // 12 symptoms + 1 notes page = 13 total
+  static const int _totalPages = 13;
+
   DateTime _date = DateTime.now();
   TimeOfDay _time = TimeOfDay.now();
-
   final TextEditingController _notesCtrl = TextEditingController();
+  final PageController _pageCtrl = PageController();
 
-  // MAPS symptoms (12 items → max score 36)
-  final List<String> _symptoms = const [
+  // MAPS symptoms (12 items)
+  static const List<String> _symptoms = [
     'Dizziness in upright position or while standing up',
     'Dizziness, feeling that you are going to faint',
     'Palpitations, high pulse, or feeling heart beating irregularly',
@@ -32,168 +187,132 @@ class _EpisodeQuizState extends State<EpisodeQuiz> {
     'Blurred vision',
   ];
 
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) setState(() => _date = picked);
-  }
+  // Local symptom scores (keyed by symptom string)
+  late final Map<String, Severity?> _scores;
 
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _time,
-    );
-    if (picked != null) setState(() => _time = picked);
-  }
+  @override
+  void initState() {
+    super.initState();
+    // Initialize all to null (no selection)
+    _scores = {for (final s in _symptoms) s: null};
 
-  int _totalScore(MyAppState app) {
-    int sum = 0;
-    for (final s in _symptoms) {
-      final v = app.episodeScores[s] ?? 0.0;
-      sum += v.round().clamp(0, 3);
-    }
-    return sum;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appState = Provider.of<MyAppState>(context, listen: false);
+      final draft = appState.episodeDraft;
+      if (draft != null) {
+        setState(() {
+          _currentPage = draft.currentPage;
+          _date = draft.date;
+          _time = draft.time;
+          _notesCtrl.text = draft.notes;
+          // Restore scores from draft
+          for (final entry in draft.symptomScores.entries) {
+            _scores[entry.key] = _severityFromValue(entry.value);
+          }
+        });
+        if (_pageCtrl.hasClients) {
+          _pageCtrl.jumpToPage(_currentPage);
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
     _notesCtrl.dispose();
+    _pageCtrl.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final app = context.watch<MyAppState>();
-    final maxScore = _symptoms.length * 3;
-    final total = _totalScore(app);
-    final percent = maxScore == 0 ? 0.0 : (total / maxScore) * 100.0;
+  // ─── Helpers ──────────────────────────────────────────────
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const _EPHeaderBanner(),
-            const SizedBox(height: 12),
+  Map<String, double> _scoresToDoubleMap() {
+    return {
+      for (final entry in _scores.entries)
+        if (entry.value != null)
+          entry.key: _severityToValue(entry.value!).toDouble(),
+    };
+  }
 
-            _EPSectionCard(
-              title: 'Date & Time',
-              leadingIcon: Icons.calendar_month,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 12),
+  EpisodeDraft _buildDraft() => EpisodeDraft(
+        currentPage: _currentPage,
+        date: _date,
+        time: _time,
+        symptomScores: _scoresToDoubleMap(),
+        notes: _notesCtrl.text,
+      );
 
-                  // Date & Time pickers
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _EPPickerTile(
-                          label: 'Date',
-                          value:
-                              '${_date.month.toString().padLeft(2, '0')}/${_date.day.toString().padLeft(2, '0')}/${_date.year}',
-                          icon: Icons.calendar_today,
-                          onTap: _pickDate,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _EPPickerTile(
-                          label: 'Time',
-                          value: _formatTime(_time),
-                          icon: Icons.access_time,
-                          onTap: _pickTime,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
+  void _pauseSurvey() {
+    final appState = Provider.of<MyAppState>(context, listen: false);
+    appState.pauseEpisodeSurvey(_buildDraft());
+    Navigator.of(context).pop();
+  }
 
-           
-
-            // Symptom cards with chips
-            for (final symptom in _symptoms)...[
-              _EPSectionCard(
-                title: symptom,
-                leadingIcon: Icons.circle_outlined,
-                child: _SeverityChipsRow(
-                  value: _severityFromValue(app.episodeScores[symptom] ?? 0),
-                  onChanged: (sev) {
-                    // Map Severity → 0..3 and store via provider
-                    app.updateEpisodeScore(symptom, _severityToValue(sev).toDouble());
-                  },
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-
-            // Notes
-            _EPSectionCard(
-              title: 'Additional Notes',
-              leadingIcon: Icons.notes_outlined,
-              child: TextField(
-                controller: _notesCtrl,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  hintText: 'Triggers, context, or any other observations...',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Save button
-            HeartbeatButton(
-              label: 'Log POTS Episode',
-              gradientColors: const [Color(0xFFCC2B2B), Color(0xFFEF4444)],
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('POTS episode logged')),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Recent episodes placeholder (wire to your data source if available)
-            _EPSectionCard(
-              title: 'Recent Episodes',
-              leadingIcon: Icons.history,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 6),
-                child: Text(
-                  'No recent episodes yet. Start logging!',
-                  style: TextStyle(color: Colors.black54),
-                ),
-              ),
-            ),
-          ],
-        ),
+  void _stopSurvey() async {
+    final appState = Provider.of<MyAppState>(context, listen: false);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Stop survey?'),
+        content: const Text('Your progress will be lost.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Stop',
+                  style: TextStyle(color: Colors.red))),
+        ],
       ),
     );
+    if (confirmed == true) {
+      appState.clearEpisodeDraft();
+      if (mounted) Navigator.of(context).pop();
+    }
   }
 
-  String _formatTime(TimeOfDay t) {
-    final h = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
-    final m = t.minute.toString().padLeft(2, '0');
-    final suffix = t.period == DayPeriod.am ? 'am' : 'pm';
-    return '$h:$m $suffix';
+  void _nextPage() {
+    if (_currentPage < _totalPages - 1) {
+      _pageCtrl.nextPage(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut);
+      setState(() => _currentPage++);
+    }
   }
 
-  // Severity ↔ integer value helpers (None=0, Mild=1, Moderate=2, Severe=3)
+  void _prevPage() {
+    if (_currentPage > 0) {
+      _pageCtrl.previousPage(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut);
+      setState(() => _currentPage--);
+    }
+  }
+
+  void _saveLog() {
+    // Push scores to appState
+    final appState = Provider.of<MyAppState>(context, listen: false);
+    for (final entry in _scores.entries) {
+      // If value is null, default to 0 (None)
+      final val = entry.value == null ? 0.0 : _severityToValue(entry.value!).toDouble();
+      appState.updateEpisodeScore(entry.key, val);
+    }
+    appState.clearEpisodeDraft();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('POTS episode logged ✓')),
+    );
+    Navigator.of(context).pop();
+  }
+
+  // Severity ↔ integer
   static int _severityToValue(Severity s) {
     switch (s) {
       case Severity.none:
         return 0;
       case Severity.slight:
-        return 1; // "Mild"
+        return 1;
       case Severity.moderate:
         return 2;
       case Severity.severe:
@@ -215,12 +334,200 @@ class _EpisodeQuizState extends State<EpisodeQuiz> {
         return Severity.severe;
     }
   }
+
+  // ─── Build ────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFAFAFA),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: const Text('POTS Episode Log'),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Progress bar ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Step ${_currentPage + 1} of $_totalPages',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 14)),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: (_currentPage + 1) / _totalPages,
+                      minHeight: 8,
+                      backgroundColor: const Color(0xFFFFE0E0),
+                      valueColor: const AlwaysStoppedAnimation(
+                          Color(0xFFCC2B2B)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // ── Pages ──
+            Expanded(
+              child: PageView(
+                controller: _pageCtrl,
+                physics: const NeverScrollableScrollPhysics(),
+                onPageChanged: (i) => setState(() => _currentPage = i),
+                children: [
+                  // 12 symptoms pages
+                  for (final symptom in _symptoms)
+                    _buildSingleSymptomPage(symptom),
+                  // Page 13: Notes
+                  _buildNotesPage(),
+                ],
+              ),
+            ),
+
+            // ── Bottom controls ──
+            QuizBottomBar(
+              onPause: _pauseSurvey,
+              onStop: _stopSurvey,
+              onBack: _currentPage > 0 ? _prevPage : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Single symptom page builder ───────────────────────────
+
+  Widget _buildSingleSymptomPage(String symptom) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _SectionCard(
+            title: symptom,
+            leadingIcon: Icons.circle_outlined,
+            child: _VerticalSeveritySelector(
+              value: _scores[symptom],
+              onChanged: (sev) {
+                setState(() {
+                  _scores[symptom] = sev;
+                });
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          QuizNextButton(onPressed: _nextPage),
+        ],
+      ),
+    );
+  }
+
+  // ── Notes page ────────────────────────────────────────────
+
+  Widget _buildNotesPage() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _SectionCard(
+            title: 'Additional Notes',
+            leadingIcon: Icons.edit_note,
+            child: TextField(
+              controller: _notesCtrl,
+              maxLines: 5,
+              decoration: const InputDecoration(
+                hintText: 'Triggers, context, or any other observations...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          QuizNextButton(
+            onPressed: _saveLog,
+            label: 'Save Log',
+            icon: Icons.check, 
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-/* ---------------------- UI helpers (local to this file) ---------------------- */
+/* ====================== Shared UI Helpers ====================== */
 
-class _EPHeaderBanner extends StatelessWidget {
-  const _EPHeaderBanner();
+class _VerticalSeveritySelector extends StatelessWidget {
+  const _VerticalSeveritySelector(
+      {required this.value, required this.onChanged});
+
+  final Severity? value;
+  final ValueChanged<Severity> onChanged;
+
+  static const _labels = ['None', 'Mild', 'Moderate', 'Severe'];
+  static const _values = [
+    Severity.none,
+    Severity.slight,
+    Severity.moderate,
+    Severity.severe,
+  ];
+  static const _icons = [
+    Icons.sentiment_very_satisfied,
+    Icons.sentiment_satisfied,
+    Icons.sentiment_dissatisfied,
+    Icons.sentiment_very_dissatisfied,
+  ];
+  static const _colors = [
+    Color(0xFF43A047),
+    Color(0xFFFBC02D),
+    Color(0xFFFB8C00),
+    Color(0xFFE53935),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: List.generate(4, (i) {
+        final selected = value == _values[i];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => onChanged(_values[i]),
+              icon: Icon(_icons[i],
+                  color: selected ? Colors.white : _colors[i]),
+              label: Text(_labels[i]),
+              style: OutlinedButton.styleFrom(
+                backgroundColor: selected ? _colors[i] : Colors.white,
+                foregroundColor: selected ? Colors.white : Colors.black87,
+                side: BorderSide(
+                    color: selected ? _colors[i] : Colors.black26),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                textStyle: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _InfoBanner extends StatelessWidget {
+  const _InfoBanner(
+      {required this.title, required this.subtitle, required this.icon});
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -233,24 +540,19 @@ class _EPHeaderBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.monitor_heart_outlined, color: Color(0xFF4F7CFF)),
+          Icon(icon, color: const Color(0xFF4F7CFF)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'POTS Episode Log',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 30),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Log as often as you need. Leave non-applicable questions as None.',
-                  style: TextStyle(
-                    color: Colors.black54,
-                    fontSize: 13,
-                  ),
-                ),
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 22)),
+                const SizedBox(height: 4),
+                Text(subtitle,
+                    style: const TextStyle(
+                        color: Colors.black54, fontSize: 13)),
               ],
             ),
           ),
@@ -260,12 +562,11 @@ class _EPHeaderBanner extends StatelessWidget {
   }
 }
 
-class _EPSectionCard extends StatelessWidget {
-  const _EPSectionCard({
-    required this.title,
-    required this.child,
-    required this.leadingIcon,
-  });
+class _SectionCard extends StatelessWidget {
+  const _SectionCard(
+      {required this.title,
+      required this.child,
+      required this.leadingIcon});
 
   final String title;
   final Widget child;
@@ -273,150 +574,39 @@ class _EPSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: Colors.black12.withOpacity(0.06)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(leadingIcon, color: const Color(0xFF4F7CFF)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      title,
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: Colors.black12.withValues(alpha: 0.06)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(leadingIcon, color: const Color(0xFF4F7CFF)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(title,
                       softWrap: true,
                       maxLines: 3,
                       overflow: TextOverflow.fade,
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              child,
-            ],
-          ),
+                          fontSize: 16, fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            child,
+          ],
         ),
       ),
     );
   }
 }
 
-class _EPPickerTile extends StatelessWidget {
-  const _EPPickerTile({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.onTap,
-  });
 
-  final String label;
-  final String value;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.black12.withOpacity(0.06)),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.black54, size: 18),
-              const SizedBox(width: 8),
-              Text(label,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 13)),
-              const Spacer(),
-              Text(value, style: const TextStyle(fontSize: 13)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SeverityChipsRow extends StatelessWidget {
-  const _SeverityChipsRow({
-    required this.value,
-    required this.onChanged,
-  });
-
-  final Severity value;
-  final ValueChanged<Severity> onChanged;
-
-  static Color _chipBg(Severity s) {
-    switch (s) {
-      case Severity.none:
-        return const Color(0xFFE8F5E9); // green tint
-      case Severity.slight:
-        return const Color(0xFFFFF8E1); // amber tint
-      case Severity.moderate:
-        return const Color(0xFFFFF3E0); // orange tint
-      case Severity.severe:
-        return const Color(0xFFFFEBEE); // red tint
-    }
-  }
-
-  static Color _chipFg(Severity s) {
-    switch (s) {
-      case Severity.none:
-        return const Color(0xFF2E7D32); // green
-      case Severity.slight:
-        return const Color(0xFFF9A825); // amber
-      case Severity.moderate:
-        return const Color(0xFFE65100); // orange
-      case Severity.severe:
-        return const Color(0xFFC62828); // red
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final items = const [
-      (Severity.none, 'None'),
-      (Severity.slight, 'Mild'),
-      (Severity.moderate, 'Moderate'),
-      (Severity.severe, 'Severe'),
-    ];
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: items.map((it) {
-        final selected = it.$1 == value;
-        return ChoiceChip(
-          label: Text(it.$2),
-          selected: selected,
-          onSelected: (_) => onChanged(it.$1),
-          selectedColor: _chipBg(it.$1),
-          labelStyle: TextStyle(
-            color: selected ? _chipFg(it.$1) : Colors.black87,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-          ),
-        );
-      }).toList(),
-    );
-  }
-}

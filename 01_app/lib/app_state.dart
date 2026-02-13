@@ -10,7 +10,7 @@ class EveningEntry {
     required this.dateTime,
     required this.heartRateBpm,
     required this.hrvMs,
-    required this.fatiguescore,
+    required this.fatigueScore,
     required this.baselineSymptoms,
     required this.notes,
   });
@@ -18,9 +18,34 @@ class EveningEntry {
   final DateTime dateTime;
   final int heartRateBpm;
   final int hrvMs;
-  final int fatiguescore; // 0..100
+  final int fatigueScore; // 0=None,1=Slight,2=Moderate,3=Severe
   final List<String> baselineSymptoms;
   final String notes;
+}
+
+/// In-memory draft for a paused evening survey.
+class EveningDraft {
+  int currentPage;
+  DateTime date;
+  TimeOfDay time;
+  int? heartRateBpm;
+  int? hrvMs;
+  int? fatigueScore;   // 0=None,1=Slight,2=Moderate,3=Severe
+  Set<String> selectedSymptoms;
+  String notes;
+
+  EveningDraft({
+    this.currentPage = 0,
+    DateTime? date,
+    TimeOfDay? time,
+    this.heartRateBpm,
+    this.hrvMs,
+    this.fatigueScore,
+    Set<String>? selectedSymptoms,
+    this.notes = '',
+  })  : date = date ?? DateTime.now(),
+        time = time ?? TimeOfDay.now(),
+        selectedSymptoms = selectedSymptoms ?? {};
 }
 class MorningEntry {
   MorningEntry({
@@ -39,6 +64,91 @@ class MorningEntry {
   final Severity tachycardia;
   final String notes;
 }
+
+/// In-memory draft for a paused morning survey.
+class MorningDraft {
+  int currentPage;
+  DateTime date;
+  TimeOfDay time;
+  int? heartRateBpm;
+  int? hrvMs;
+  SleepQuality sleep;
+  Severity fatigue;
+  Severity dizziness;
+  Severity tachycardia;
+  String notes;
+
+  MorningDraft({
+    this.currentPage = 0,
+    DateTime? date,
+    TimeOfDay? time,
+    this.heartRateBpm,
+    this.hrvMs,
+    this.sleep = SleepQuality.fair,
+    this.fatigue = Severity.none,
+    this.dizziness = Severity.none,
+    this.tachycardia = Severity.none,
+    this.notes = '',
+  })  : date = date ?? DateTime.now(),
+        time = time ?? TimeOfDay.now();
+}
+
+/// In-memory draft for a paused POTS episode survey.
+class EpisodeDraft {
+  int currentPage;
+  DateTime date;
+  TimeOfDay time;
+  Map<String, double> symptomScores;
+  String notes;
+
+  EpisodeDraft({
+    this.currentPage = 0,
+    DateTime? date,
+    TimeOfDay? time,
+    Map<String, double>? symptomScores,
+    this.notes = '',
+  })  : date = date ?? DateTime.now(),
+        time = time ?? TimeOfDay.now(),
+        symptomScores = symptomScores ?? {};
+}
+
+/// In-memory draft for a paused Lifestyle survey.
+class LifestyleDraft {
+  int currentPage;
+  DateTime date;
+  bool hotPlace;
+  bool refinedCarbs;
+  double standingMins;
+  double carbsGrams;
+  double waterLitres;
+  double alcoholUnits;
+  bool restTooMuch;
+  double exMild;
+  double exModerate;
+  double exIntense;
+  bool onPeriod;
+  double stressLevel;
+  String notes;
+
+  LifestyleDraft({
+    this.currentPage = 0,
+    DateTime? date,
+    this.hotPlace = false,
+    this.refinedCarbs = false,
+    this.standingMins = 0,
+    this.carbsGrams = 0,
+    this.waterLitres = 0,
+    this.alcoholUnits = 0,
+    this.restTooMuch = false,
+    this.exMild = 0,
+    this.exModerate = 0,
+    this.exIntense = 0,
+    this.onPeriod = false,
+    this.stressLevel = 0,
+    this.notes = '',
+  }) : date = date ?? DateTime.now();
+}
+
 class LifestyleEntry {
   LifestyleEntry({
     required this.date,
@@ -93,6 +203,18 @@ class MyAppState extends ChangeNotifier{
   void updateEpisodeScore(String symptom, double newValue) {
     episodeScores[symptom] = newValue;
     notifyListeners(); 
+  }
+
+  EpisodeDraft? episodeDraft;
+
+  void pauseEpisodeSurvey(EpisodeDraft draft) {
+    episodeDraft = draft;
+    notifyListeners();
+  }
+
+  void clearEpisodeDraft() {
+    episodeDraft = null;
+    notifyListeners();
   }
 
   Map<String, double> morningScores = {
@@ -163,6 +285,7 @@ class MyAppState extends ChangeNotifier{
     } else {return false;}
   }
   final List<EveningEntry> eveningEntries = [];
+  EveningDraft? eveningDraft;
 
   void saveEveningReview({
     required DateTime date,
@@ -174,19 +297,31 @@ class MyAppState extends ChangeNotifier{
     required String notes,
   }) {
     final dt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
-    eveningEntries.add(EveningEntry(
+    eveningEntries.insert(0, EveningEntry(
       dateTime: dt,
       heartRateBpm: heartRateBpm,
       hrvMs: hrvMs,
-      fatiguescore: fatigueScore,
+      fatigueScore: fatigueScore,
       baselineSymptoms: baselineSymptoms,
       notes: notes,
     ));
+    eveningDraft = null;
+    notifyListeners();
+  }
+
+  void pauseEveningReview(EveningDraft draft) {
+    eveningDraft = draft;
+    notifyListeners();
+  }
+
+  void clearEveningDraft() {
+    eveningDraft = null;
     notifyListeners();
   }
   // Morning entries storage
   final List<MorningEntry> _morningEntries = [];
   List<MorningEntry> get morningEntries => List.unmodifiable(_morningEntries);
+  MorningDraft? morningDraft;
 
   // Save method used by MorningQuiz
   void saveMorningCheckIn({
@@ -210,10 +345,32 @@ class MyAppState extends ChangeNotifier{
         notes: notes,
       ),
     );
+    morningDraft = null;
+    notifyListeners();
+  }
+
+  void pauseMorningCheckIn(MorningDraft draft) {
+    morningDraft = draft;
+    notifyListeners();
+  }
+
+  void clearMorningDraft() {
+    morningDraft = null;
     notifyListeners();
   }
     final List<LifestyleEntry> _lifestyleEntries = [];
     List<LifestyleEntry> get lifestyleEntries => List.unmodifiable(_lifestyleEntries);
+    LifestyleDraft? lifestyleDraft;
+
+    void pauseLifestyleSurvey(LifestyleDraft draft) {
+      lifestyleDraft = draft;
+      notifyListeners();
+    }
+
+    void clearLifestyleDraft() {
+      lifestyleDraft = null;
+      notifyListeners();
+    }
 
     void saveLifestyleEntry({
       required DateTime date,
@@ -250,6 +407,7 @@ class MyAppState extends ChangeNotifier{
           notes: notes,
         ),
       );
+      lifestyleDraft = null;
       notifyListeners();
     }
 }

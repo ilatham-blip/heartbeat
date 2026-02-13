@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:heartbeat/app_theme.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:heartbeat/app_state.dart'; // for MyAppState and Severity enum
+import 'package:heartbeat/app_state.dart';
+import 'package:heartbeat/widgets/quiz_bottom_bar.dart';
+import 'package:heartbeat/widgets/quiz_next_button.dart';
 
+/// Evening quiz: landing page (embedded in tabs) + full-screen paged survey.
 class EveningQuiz extends StatefulWidget {
   const EveningQuiz({super.key});
   @override
@@ -10,108 +13,37 @@ class EveningQuiz extends StatefulWidget {
 }
 
 class _EveningQuizState extends State<EveningQuiz> {
-  // Date & time
-  DateTime _date = DateTime.now();
-  TimeOfDay _time = TimeOfDay.now();
-
-  // Abnormal fatigue (chips)
-  Severity _fatigue = Severity.none;
-
-  // Baseline symptoms
-  final Set<String> _selectedBaseline = <String>{};
-
-  final List<String> _baselineOptions = const [
-    'Dizziness, feeling that you are going to faint after being upright',
-    'Palpitations, high pulse, or feeling heart beating irregularly',
-    'Chest pain',
-    'Headache',
-    'Concentration difficulties and/or problems with thinking',
-    'Muscle pain',
-    'Nausea',
-    'Gastrointestinal problems (stomach-ache, diarrhoea, constipation)',
-    'Difficulties in concentration',
-    'Difficult breathing/dyspnoea, both at effort and rest',
-    'Temperature Changes (feeling abnormally hot or cold)',
-  ];
-
-  final TextEditingController _notesCtrl = TextEditingController();
-  final TextEditingController _hrCtrl = TextEditingController();
-  final TextEditingController _hrvCtrl = TextEditingController();
-
-  @override
-  void dispose() {
-    _notesCtrl.dispose();
-    _hrCtrl.dispose();
-    _hrvCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
+  void _startSurvey() {
+    final appState = Provider.of<MyAppState>(context, listen: false);
+    appState.clearEveningDraft();
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const _EveningSurveyScreen()),
     );
-    if (picked != null) setState(() => _date = picked);
   }
 
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _time,
+  void _continueSurvey() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const _EveningSurveyScreen()),
     );
-    if (picked != null) setState(() => _time = picked);
-  }
-  int fatigueToScore(Severity s) {
-    switch (s) {
-      case Severity.none:
-        return 0;
-      case Severity.slight:
-        return 25;
-      case Severity.moderate:
-        return 50;
-      case Severity.severe:
-        return 75; // or 100 if you prefer a 0–100 scale
-    }
-  }
-  // Optional: add "Abnormal Fatigue" to baseline if level > None
-  List<String> _finalBaseline() {
-    final list = _selectedBaseline.toList();
-    if (_fatigue != Severity.none && !list.contains('Abnormal Fatigue')) {
-      list.add('Abnormal Fatigue');
-    } else if (_fatigue == Severity.none) {
-      list.remove('Abnormal Fatigue');
-    }
-    return list;
   }
 
-  void _save() {
-    final app = context.read<MyAppState>();
-
-    // If your saveEveningReview still requires HR and HRV, keep these 0s.
-    // If you removed them from MyAppState, delete heartRateBpm/hrvMs below.
-    app.saveEveningReview(
-      date: _date,
-      time: _time,
-      heartRateBpm: 0, // remove if not required
-      hrvMs: 0,        // remove if not required
-      fatigueScore: fatigueToScore(_fatigue), // Convert enum to 0, 25, 50, 75
-      baselineSymptoms: _finalBaseline(),
-      notes: _notesCtrl.text.trim(),
+  void _restartSurvey() {
+    final appState = Provider.of<MyAppState>(context, listen: false);
+    appState.clearEveningDraft();
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const _EveningSurveyScreen()),
     );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Evening review saved')),
-    );
-    setState(() {
-      _notesCtrl.clear();
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final app = context.watch<MyAppState>(); // used for recent entries
+    final appState = Provider.of<MyAppState>(context);
+    final draft = appState.eveningDraft;
+    final hasDraft = draft != null;
+    final now = DateTime.now();
+    final timeStr = _formatTime(TimeOfDay.now());
+    final dateStr =
+        '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -119,7 +51,7 @@ class _EveningQuizState extends State<EveningQuiz> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top tabs live elsewhere; we render the body only
+            // ── Header banner ──
             _InfoBanner(
               title: 'Evening Time Log',
               subtitle: 'Review your day (5pm - 5am)',
@@ -127,197 +59,85 @@ class _EveningQuizState extends State<EveningQuiz> {
             ),
             const SizedBox(height: 12),
 
-            // Date & Time card
+            // ── Date & Time ──
             _SectionCard(
               title: 'Date & Time',
-              leadingIcon: Icons.calendar_month,
+              leadingIcon: Icons.calendar_today,
               child: Row(
                 children: [
-                  Expanded(
-                    child: _PickerTile(
-                      label: 'Date',
-                      value:
-                          '${_date.month.toString().padLeft(2, '0')}/${_date.day.toString().padLeft(2, '0')}/${_date.year}',
-                      icon: Icons.calendar_today,
-                      onTap: _pickDate,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _PickerTile(
-                      label: 'Time',
-                      value: _formatTime(_time),
-                      icon: Icons.access_time,
-                      onTap: _pickTime,
-                    ),
-                  ),
+                  const Icon(Icons.calendar_today, size: 18, color: Colors.black54),
+                  const SizedBox(width: 8),
+                  Text(dateStr, style: const TextStyle(fontSize: 15)),
+                  const Spacer(),
+                  const Icon(Icons.access_time, size: 18, color: Colors.black54),
+                  const SizedBox(width: 8),
+                  Text(timeStr, style: const TextStyle(fontSize: 15)),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-            // HR & HRV card
-            _SectionCard(
-              title: 'HR & HRV',
-              leadingIcon: Icons.monitor_heart_outlined,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _hrCtrl,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Heart Rate (bpm)',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _hrvCtrl,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'HRV (ms)',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('PLUX HeartBIT connection coming soon')),
-                        );
-                      },
-                      icon: const Icon(Icons.bluetooth),
-                      label: const Text('Connect to PLUX HeartBIT'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF4F7CFF),
-                        side: const BorderSide(color: Color(0xFF4F7CFF)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Abnormal Fatigue card
-            _SectionCard(
-              title: 'Abnormal Fatigue',
-              leadingIcon: Icons.battery_alert_outlined,
-              child: _SeverityChips(
-                value: _fatigue,
-                onChanged: (s) => setState(() => _fatigue = s),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Baseline Symptoms card
-            _SectionCard(
-              title: 'Baseline Symptoms',
-              leadingIcon: Icons.checklist_outlined,
-              child: Column(
-                children: _baselineOptions.map((label) {
-                  final selected = _selectedBaseline.contains(label);
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: InkWell(
-                      onTap: () {
-                        setState(() {
-                          if (selected) {
-                            _selectedBaseline.remove(label);
-                          } else {
-                            _selectedBaseline.add(label);
-                          }
-                        });
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: selected
-                                ? const Color(0xFF3A66FF)
-                                : Colors.black12,
-                            width: selected ? 2 : 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                label,
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Additional Notes card
-            _SectionCard(
-              title: 'Additional Notes',
-              leadingIcon: Icons.notes_outlined,
-              child: TextField(
-                controller: _notesCtrl,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  hintText: 'How was your day overall?',
-                  border: OutlineInputBorder(),
+            // ── Action buttons ──
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: hasDraft ? _continueSurvey : _startSurvey,
+                icon: Icon(hasDraft ? Icons.play_arrow : Icons.play_arrow_rounded),
+                label: Text(hasDraft ? 'Continue Survey' : 'Start Survey'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F7CFF),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            if (hasDraft) ...[
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _restartSurvey,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Restart Survey'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF4F7CFF),
+                    side: const BorderSide(color: Color(0xFF4F7CFF)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
 
-            // Save button (outside any card)
-            HeartbeatButton(
-              label: 'Save Evening Review',
-              onPressed: _save,
-            ),
-            const SizedBox(height: 12),
-
-            // Recent Entries (simple)
+            // ── Recent entries ──
             _SectionCard(
               title: 'Recent Entries',
               leadingIcon: Icons.history,
-              child: (app.eveningEntries.isEmpty)
+              child: appState.eveningEntries.isEmpty
                   ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 6),
-                      child: Text(
-                        'No evening entries yet. Start logging!',
-                        style: TextStyle(color: Colors.black54),
-                      ),
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text('No entries yet', style: TextStyle(color: Colors.black45)),
                     )
                   : Column(
-                      children: [
-                        for (final e in app.eveningEntries.take(3))
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _RecentEveningTile(entry: e),
-                          ),
-                      ],
+                      children: appState.eveningEntries
+                          .take(5)
+                          .map((e) => Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: _RecentEntryTile(
+                                  dateLabel:
+                                      '${e.dateTime.day.toString().padLeft(2, '0')}/${e.dateTime.month.toString().padLeft(2, '0')}/${e.dateTime.year}',
+                                  timeLabel:
+                                      '${e.dateTime.hour.toString().padLeft(2, '0')}:${e.dateTime.minute.toString().padLeft(2, '0')}',
+                                  heartRate: '${e.heartRateBpm} bpm',
+                                  hrv: '${e.hrvMs} ms',
+                                  fatigue: _fatigueLabelFromScore(e.fatigueScore),
+                                ),
+                              ))
+                          .toList(),
                     ),
             ),
           ],
@@ -326,35 +146,465 @@ class _EveningQuizState extends State<EveningQuiz> {
     );
   }
 
-  String _formatTime(TimeOfDay t) {
+  static String _formatTime(TimeOfDay t) {
     final h = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
     final m = t.minute.toString().padLeft(2, '0');
     final suffix = t.period == DayPeriod.am ? 'am' : 'pm';
     return '$h:$m $suffix';
   }
 
-  String _fatigueLabel(Severity s) {
-    switch (s) {
-      case Severity.none:
-        return 'None';
-      case Severity.slight:
-        return 'Slight';
-      case Severity.moderate:
-        return 'Moderate';
-      case Severity.severe:
-        return 'Severe';
+  static String _fatigueLabelFromScore(int v) {
+    switch (v) {
+      case 0: return 'None';
+      case 1: return 'Slight';
+      case 2: return 'Moderate';
+      case 3: return 'Severe';
+      default: return 'Unknown';
     }
   }
 }
 
-/* ---------------------- UI helpers ---------------------- */
+// ═══════════════════════════════════════════════════════════
+// Full-screen survey route — hides bottom nav & tab bar
+// ═══════════════════════════════════════════════════════════
+
+class _EveningSurveyScreen extends StatefulWidget {
+  const _EveningSurveyScreen();
+  @override
+  State<_EveningSurveyScreen> createState() => _EveningSurveyScreenState();
+}
+
+class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
+  int _currentPage = 0;
+  static const int _totalPages = 4;
+
+  DateTime _date = DateTime.now();
+  TimeOfDay _time = TimeOfDay.now();
+  final TextEditingController _hrCtrl = TextEditingController();
+  final TextEditingController _hrvCtrl = TextEditingController();
+  int? _fatigueScore;
+  final Set<String> _selectedSymptoms = {};
+  final TextEditingController _notesCtrl = TextEditingController();
+  final PageController _pageCtrl = PageController();
+
+  final List<String> _symptomOptions = const [
+    'Muscle pain',
+    'Nausea',
+    'Gastrointestinal problems (stomach-ache, diarrhoea, constipation)',
+    'Difficulties in concentration',
+    'Difficult breathing/dyspnoea, both at effort and rest',
+    'Temperature Changes (feeling abnormally hot or cold)',
+    'Dizziness, feeling that you are going to faint after being upright',
+    'Palpitations, high pulse, or feeling heart beating irregularly',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    // If a draft exists, restore it
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appState = Provider.of<MyAppState>(context, listen: false);
+      final draft = appState.eveningDraft;
+      if (draft != null) {
+        setState(() {
+          _currentPage = draft.currentPage;
+          _date = draft.date;
+          _time = draft.time;
+          _hrCtrl.text = draft.heartRateBpm?.toString() ?? '';
+          _hrvCtrl.text = draft.hrvMs?.toString() ?? '';
+          _fatigueScore = draft.fatigueScore;
+          _selectedSymptoms
+            ..clear()
+            ..addAll(draft.selectedSymptoms);
+          _notesCtrl.text = draft.notes;
+        });
+        if (_pageCtrl.hasClients) {
+          _pageCtrl.jumpToPage(_currentPage);
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _hrCtrl.dispose();
+    _hrvCtrl.dispose();
+    _notesCtrl.dispose();
+    _pageCtrl.dispose();
+    super.dispose();
+  }
+
+  // ─── Helpers ───────────────────────────────────────────────
+
+  EveningDraft _buildDraft() => EveningDraft(
+        currentPage: _currentPage,
+        date: _date,
+        time: _time,
+        heartRateBpm: int.tryParse(_hrCtrl.text),
+        hrvMs: int.tryParse(_hrvCtrl.text),
+        fatigueScore: _fatigueScore,
+        selectedSymptoms: Set.of(_selectedSymptoms),
+        notes: _notesCtrl.text,
+      );
+
+  void _pauseSurvey() {
+    final appState = Provider.of<MyAppState>(context, listen: false);
+    appState.pauseEveningReview(_buildDraft());
+    Navigator.of(context).pop();
+  }
+
+  void _stopSurvey() async {
+    final appState = Provider.of<MyAppState>(context, listen: false);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Stop survey?'),
+        content: const Text('Your progress will be lost.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Stop', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      appState.clearEveningDraft();
+      if (mounted) Navigator.of(context).pop();
+    }
+  }
+
+  void _nextPage() {
+    if (_currentPage < _totalPages - 1) {
+      _pageCtrl.nextPage(
+          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+      setState(() => _currentPage++);
+    }
+  }
+
+  void _prevPage() {
+    if (_currentPage > 0) {
+      _pageCtrl.previousPage(
+          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+      setState(() => _currentPage--);
+    }
+  }
+
+  void _saveLog() {
+    final hr = int.tryParse(_hrCtrl.text) ?? 0;
+    final hrv = int.tryParse(_hrvCtrl.text) ?? 0;
+
+    final appState = Provider.of<MyAppState>(context, listen: false);
+    appState.saveEveningReview(
+      date: _date,
+      time: _time,
+      heartRateBpm: hr,
+      hrvMs: hrv,
+      fatigueScore: _fatigueScore ?? 0,
+      baselineSymptoms: _selectedSymptoms.toList(),
+      notes: _notesCtrl.text.trim(),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Evening log saved ✓')),
+    );
+    Navigator.of(context).pop();
+  }
+
+  // ─── Build ─────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFAFAFA),
+      appBar: AppBar(
+        automaticallyImplyLeading: false, // we handle our own nav
+        title: const Text('Evening Log'),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Progress bar ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Step ${_currentPage + 1} of $_totalPages',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 14)),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: (_currentPage + 1) / _totalPages,
+                      minHeight: 8,
+                      backgroundColor: const Color(0xFFE0E7FF),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // ── Pages ──
+            Expanded(
+              child: PageView(
+                controller: _pageCtrl,
+                physics: const NeverScrollableScrollPhysics(),
+                onPageChanged: (i) => setState(() => _currentPage = i),
+                children: [
+                  _buildHRVPage(),
+                  _buildFatiguePage(),
+                  _buildSymptomsPage(),
+                  _buildNotesPage(),
+                ],
+              ),
+            ),
+
+            // ── Bottom controls ──
+            QuizBottomBar(
+              onPause: _pauseSurvey,
+              onStop: _stopSurvey,
+              onBack: _currentPage > 0 ? _prevPage : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Page 1: HRV ────────────────────────────────────────────
+
+  Widget _buildHRVPage() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _SectionCard(
+            title: 'Heart Rate & HRV',
+            leadingIcon: Icons.monitor_heart,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Heart Rate (bpm)',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _hrCtrl,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. 72',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.favorite, color: Color(0xFFE53935)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('HRV (ms)',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _hrvCtrl,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. 50',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.timeline, color: Color(0xFF4F7CFF)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content:
+                                Text('Polar Heartbeat integration coming soon')),
+                      );
+                    },
+                    icon: const Icon(Icons.bluetooth),
+                    label: const Text('Connect to Polar Heartbeat'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF4F7CFF),
+                      side: const BorderSide(color: Color(0xFF4F7CFF)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          QuizNextButton(onPressed: _nextPage),
+        ],
+      ),
+    );
+  }
+
+  // ── Page 2: Fatigue ────────────────────────────────────────
+
+  Widget _buildFatiguePage() {
+    const labels = ['None', 'Slight', 'Moderate', 'Severe'];
+    const icons = [
+      Icons.sentiment_very_satisfied,
+      Icons.sentiment_satisfied,
+      Icons.sentiment_dissatisfied,
+      Icons.sentiment_very_dissatisfied,
+    ];
+    const colors = [
+      Color(0xFF43A047),
+      Color(0xFFFBC02D),
+      Color(0xFFFB8C00),
+      Color(0xFFE53935),
+    ];
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _SectionCard(
+            title: 'Abnormal Fatigue',
+            leadingIcon: Icons.battery_alert,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('How would you rate your abnormal fatigue today?',
+                    style: TextStyle(fontSize: 15)),
+                const SizedBox(height: 16),
+                ...List.generate(4, (i) {
+                  final selected = _fatigueScore == i;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => setState(() => _fatigueScore = i),
+                        icon: Icon(icons[i],
+                            color: selected ? Colors.white : colors[i]),
+                        label: Text(labels[i]),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: selected ? colors[i] : Colors.white,
+                          foregroundColor:
+                              selected ? Colors.white : Colors.black87,
+                          side: BorderSide(
+                              color: selected ? colors[i] : Colors.black26),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          textStyle: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          QuizNextButton(onPressed: _nextPage),
+        ],
+      ),
+    );
+  }
+
+  // ── Page 3: Symptoms ───────────────────────────────────────
+
+  Widget _buildSymptomsPage() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _SectionCard(
+            title: 'Baseline Symptoms',
+            leadingIcon: Icons.checklist,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Select any symptoms you experienced today:',
+                    style: TextStyle(fontSize: 15)),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _symptomOptions.map((label) {
+                    final selected = _selectedSymptoms.contains(label);
+                    return FilterChip(
+                      label: Text(label),
+                      selected: selected,
+                      selectedColor: const Color(0xFFD6E4FF),
+                      checkmarkColor: const Color(0xFF4F7CFF),
+                      onSelected: (isSel) {
+                        setState(() {
+                          if (isSel) {
+                            _selectedSymptoms.add(label);
+                          } else {
+                            _selectedSymptoms.remove(label);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          QuizNextButton(onPressed: _nextPage),
+        ],
+      ),
+    );
+  }
+
+  // ── Page 4: Notes ──────────────────────────────────────────
+
+  Widget _buildNotesPage() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _SectionCard(
+            title: 'Additional Notes',
+            leadingIcon: Icons.edit_note,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: _notesCtrl,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    hintText: 'How was your day overall?',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          QuizNextButton(
+            onPressed: _saveLog,
+            label: 'Save Log',
+            icon: Icons.check,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/* ====================== Shared UI Helpers ====================== */
 
 class _InfoBanner extends StatelessWidget {
-  const _InfoBanner({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-  });
+  const _InfoBanner(
+      {required this.title, required this.subtitle, required this.icon});
 
   final String title;
   final String subtitle;
@@ -379,11 +629,11 @@ class _InfoBanner extends StatelessWidget {
               children: [
                 Text(title,
                     style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 30)),
+                        fontWeight: FontWeight.w700, fontSize: 22)),
                 const SizedBox(height: 4),
                 Text(subtitle,
-                    style: const TextStyle(
-                        color: Colors.black54, fontSize: 13)),
+                    style:
+                        const TextStyle(color: Colors.black54, fontSize: 13)),
               ],
             ),
           ),
@@ -394,11 +644,8 @@ class _InfoBanner extends StatelessWidget {
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.title,
-    required this.child,
-    required this.leadingIcon,
-  });
+  const _SectionCard(
+      {required this.title, required this.child, required this.leadingIcon});
 
   final String title;
   final Widget child;
@@ -406,169 +653,59 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: Colors.black12.withOpacity(0.06)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(leadingIcon, color: const Color(0xFF4F7CFF)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      title,
-                      softWrap: true,
-                      maxLines: 3,
-                      overflow: TextOverflow.fade,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              child,
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PickerTile extends StatelessWidget {
-  const _PickerTile({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String label;
-  final String value;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.black12.withOpacity(0.06)),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.black54, size: 18),
-              const SizedBox(width: 8),
-              Text(label,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 13)),
-              const Spacer(),
-              Text(value, style: const TextStyle(fontSize: 13)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SeverityChips extends StatelessWidget {
-  const _SeverityChips({
-    required this.value,
-    required this.onChanged,
-  });
-
-  final Severity value;
-  final ValueChanged<Severity> onChanged;
-
-  static Color _chipBg(Severity s) {
-    switch (s) {
-      case Severity.none:
-        return const Color(0xFFE8F5E9);
-      case Severity.slight:
-        return const Color(0xFFFFF8E1);
-      case Severity.moderate:
-        return const Color(0xFFFFF3E0);
-      case Severity.severe:
-        return const Color(0xFFFFEBEE);
-    }
-  }
-
-  static Color _chipFg(Severity s) {
-    switch (s) {
-      case Severity.none:
-        return const Color(0xFF2E7D32);
-      case Severity.slight:
-        return const Color(0xFFF9A825);
-      case Severity.moderate:
-        return const Color(0xFFE65100);
-      case Severity.severe:
-        return const Color(0xFFC62828);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final items = const [
-      (Severity.none, 'None'),
-      (Severity.slight, 'Slight'),
-      (Severity.moderate, 'Moderate'),
-      (Severity.severe, 'Severe'),
-    ];
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: items.map((it) {
-        final selected = it.$1 == value;
-        return ChoiceChip(
-          label: Text(it.$2),
-          selected: selected,
-          pressElevation: 1,
-          onSelected: (_) => onChanged(it.$1),
-          selectedColor: _chipBg(it.$1),
-          labelStyle: TextStyle(
-            color: selected ? _chipFg(it.$1) : Colors.black87,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-class _RecentEveningTile extends StatelessWidget {
-  const _RecentEveningTile({required this.entry});
-  final EveningEntry entry;
-
-  @override
-  Widget build(BuildContext context) {
-    final dt = entry.dateTime;
-    final dateLabel = '${dt.month}/${dt.day}/${dt.year}';
-    final timeLabel = _format(dt);
     return Material(
       color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: Colors.black12.withOpacity(0.06)),
+        side: BorderSide(color: Colors.black12.withValues(alpha: 0.06)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(leadingIcon, color: const Color(0xFF4F7CFF)),
+                const SizedBox(width: 8),
+                Text(title,
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w700)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+
+class _RecentEntryTile extends StatelessWidget {
+  const _RecentEntryTile({
+    required this.dateLabel,
+    required this.timeLabel,
+    required this.heartRate,
+    required this.hrv,
+    required this.fatigue,
+  });
+
+  final String dateLabel;
+  final String timeLabel;
+  final String heartRate;
+  final String hrv;
+  final String fatigue;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: Colors.black12.withValues(alpha: 0.06)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -580,31 +717,29 @@ class _RecentEveningTile extends StatelessWidget {
                     style: const TextStyle(
                         fontWeight: FontWeight.w700, fontSize: 14)),
                 const Spacer(),
-                Text(timeLabel, style: const TextStyle(color: Colors.black54)),
+                Text(timeLabel,
+                    style: const TextStyle(color: Colors.black54)),
               ],
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                const Text('Symptoms', style: TextStyle(color: Colors.black87)),
-                const Spacer(),
-                Text(
-                  '${entry.baselineSymptoms.length} selected',
-                  style: const TextStyle(
-                      color: Color(0xFF3A66FF), fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
+            _kv('Heart Rate', heartRate),
+            _kv('HRV', hrv),
+            _kv('Fatigue', fatigue),
           ],
         ),
       ),
     );
   }
 
-  static String _format(DateTime dt) {
-    final h12 = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-    final m = dt.minute.toString().padLeft(2, '0');
-    final suffix = dt.hour < 12 ? 'am' : 'pm';
-    return '$h12:$m $suffix';
+  Widget _kv(String k, String v) {
+    return Row(
+      children: [
+        Text(k, style: const TextStyle(color: Colors.black87)),
+        const Spacer(),
+        Text(v,
+            style: const TextStyle(
+                color: Color(0xFF4F7CFF), fontWeight: FontWeight.w600)),
+      ],
+    );
   }
 }
