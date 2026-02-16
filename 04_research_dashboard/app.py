@@ -1,58 +1,95 @@
 import streamlit as st
 import pandas as pd
-from packages.supabase_client import init_supabase, fetch_table_data, fetch_user_data
-from views import user_detail
+from packages.supabase_client import init_supabase
 
-st.set_page_config(page_title="Heartbeat Research Dashboard", layout="wide")
+# Import views
+# Note: app.py is entry point, so we can import from local modules
+import views.home as home
+import views.data_dashboard as data_dashboard
+import views.more as more
 
-supabase = init_supabase()
+# Page Config
+st.set_page_config(page_title="Heartbeat Research Dashboard", layout="wide", page_icon="❤️")
 
-st.title("❤️ Heartbeat Research Dashboard")
-
-# Navigation
-st.sidebar.header("Navigation")
-page = st.sidebar.radio("Go to", ["Overview", "User Explorer", "Medical Analysis"])
-
-if page == "Overview":
-    st.header("Study Overview")
+# Custom CSS for styling
+st.markdown("""
+<style>
+    /* Main Background */
+    .stApp {
+        background-color: #FAFAFA;
+    }
     
-    # Fetch high-level stats
-    users_df = fetch_table_data("user_profiles", supabase)
-    studies_df = fetch_table_data("research_studies", supabase)
+    /* Sidebar styling */
+    section[data-testid="stSidebar"] {
+        background-color: #FFFFFF;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+        border-right: 1px solid #E5E7EB;
+    }
+    
+    /* Card-like containers for data */
+    .stDataFrame, .stPlotlyChart {
+        background-color: #FFFFFF;
+        padding: 1rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total Users", len(users_df))
-    col2.metric("Active Studies", len(studies_df))
+    /* Headers */
+    h1, h2, h3 {
+        color: #1E40AF;
+        font-family: 'Inter', sans-serif;
+    }
     
-    # Calculate gender distribution
-    if not users_df.empty and 'gender' in users_df.columns:
-        st.subheader("Demographics")
-        gender_counts = users_df['gender'].value_counts()
-        st.bar_chart(gender_counts)
+    /* Metrics */
+    div[data-testid="stMetricValue"] {
+        color: #1E40AF;
+    }
     
-    # HADS scores overview
-    if not users_df.empty and 'hads_total_score' in users_df.columns:
-        st.subheader("HADS Total Scores Distribution")
-        st.bar_chart(users_df['hads_total_score'])
+    /* Custom buttons */
+    button[kind="primary"] {
+        background-color: #1E40AF;
+        border-radius: 8px;
+        border: none;
+        transition: all 0.2s;
+    }
+    button[kind="primary"]:hover {
+        background-color: #1E3A8A;
+        box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2);
+    }
+</style>
+""", unsafe_allow_html=True)
 
-elif page == "User Explorer":
-    st.header("User Explorer")
-    
-    users_df = fetch_table_data("user_profiles", supabase)
-    
-    if not users_df.empty:
-        # Display user table
-        st.dataframe(users_df, use_container_width=True)
-        
-        # User selection for detailed view
-        user_ids = users_df['id'].tolist()
-        selected_user_id = st.selectbox("Select User ID for Detail View", [""] + user_ids)
-        
-        if selected_user_id:
-             user_detail.show_user_detail(selected_user_id, supabase)
-    else:
-        st.info("No users found in the database.")
+# Initialize Supabase
+try:
+    supabase = init_supabase()
+except Exception as e:
+    st.error(f"Failed to connect to Supabase: {e}")
+    st.stop()
 
-elif page == "Medical Analysis":
-    st.header("Medical Analysis")
-    st.write("Aggregated analysis of symptoms and measurements will go here.")
+# Initialize Session State
+if "page_selection" not in st.session_state:
+    st.session_state.page_selection = "Home"
+
+# Sidebar Navigation
+with st.sidebar:
+    st.image("https://emojicdn.elk.sh/❤️", width=50) # Placeholder logo
+    st.title("Heartbeat")
+    
+    # Navigation Buttons
+    # distinct from st.radio to allow programmatic switching easily if needed, but st.radio with key is standard.
+    # We use st.radio with key to bind to session state.
+    st.radio(
+        "Navigate",
+        ["Home", "Data Dashboard", "More"],
+        key="page_selection"
+    )
+
+# Routing
+page = st.session_state.page_selection
+
+if page == "Home":
+    home.show_home(supabase)
+elif page == "Data Dashboard":
+    data_dashboard.show_data_dashboard(supabase)
+elif page == "More":
+    more.show_more(supabase)

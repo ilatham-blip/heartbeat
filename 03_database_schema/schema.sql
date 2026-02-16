@@ -1,9 +1,7 @@
 
-
 -- --------------------------------------------------------
 -- 1. USER PROFILES 
 -- --------------------------------------------------------
-
 
 CREATE TABLE public.research_studies (
     study_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -58,96 +56,105 @@ CREATE TABLE public.user_profiles (
 );
 
 -- --------------------------------------------------------
--- 2. DAILY CHECK-INS (Log Type: MORNING vs EVENING)
+-- 2. MORNING CHECK-INS (5am - 5pm)
 -- --------------------------------------------------------
--- Instead of specific columns like "morning_fatigue", we use generic names.
--- The 'checkin_type' tells us if it was morning or evening.
-
-CREATE TABLE public.daily_checkins (
+CREATE TABLE public.morning_checkins (
     checkin_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id uuid REFERENCES public.user_profiles(id) NOT NULL,
     date date DEFAULT CURRENT_DATE,
     created_at timestamptz DEFAULT now(),
 
-    -- === THE LOG TYPE ===
-    -- 'MORNING' (5am-5pm) or 'EVENING' (5pm-5am)
-    checkin_type text CHECK (checkin_type IN ('MORNING', 'EVENING')),
-
-    -- === SHARED SYMPTOMS (Asked in both) ===
-    -- generic names reused for both morning and evening logs
-    fatigue_level int CHECK (fatigue_level BETWEEN 0 AND 3),
-    dizziness_level int CHECK (dizziness_level BETWEEN 0 AND 3),
-    
-    -- Tachycardia (Morning) / Palpitations (Evening) - treated as same sensation
-    heart_sensation_level int CHECK (heart_sensation_level BETWEEN 0 AND 3),
-
-    -- === MORNING SPECIFIC ===
-    -- Only filled if checkin_type = 'MORNING'
+    -- Sleep (0=Awful, 1=Bad, 2=Fair, 3=Good)
     sleep_quality int CHECK (sleep_quality BETWEEN 0 AND 3),
+    
+    -- Symptoms (0=None, 1=Slight, 2=Moderate, 3=Severe)
+    fatigue int CHECK (fatigue BETWEEN 0 AND 3),
+    dizziness int CHECK (dizziness BETWEEN 0 AND 3),
+    tachycardia int CHECK (tachycardia BETWEEN 0 AND 3),
+    
+    notes text,
 
-    -- === EVENING SPECIFIC ===
-    -- Only filled if checkin_type = 'EVENING'
-    chest_pain_level int CHECK (chest_pain_level BETWEEN 0 AND 3),
-    headache_level int CHECK (headache_level BETWEEN 0 AND 3),
-    concentration_diff int CHECK (concentration_diff BETWEEN 0 AND 3),
-    gi_symptoms_level int CHECK (gi_symptoms_level BETWEEN 0 AND 3),
-    breathing_diff int CHECK (breathing_diff BETWEEN 0 AND 3),
-    temperature_change boolean, -- Abnormal hot/cold feeling
-
-    -- CONSTRAINT: One Morning and One Evening log per user per day.
-    UNIQUE(user_id, date, checkin_type)
+    -- CONSTRAINT: One Morning log per user per day.
+    UNIQUE(user_id, date)
 );
 
 -- --------------------------------------------------------
--- 3. LIFESTYLE LOGS (Behavior & Triggers)
+-- 3. EVENING CHECK-INS (5pm - 5am)
+-- --------------------------------------------------------
+CREATE TABLE public.evening_checkins (
+    checkin_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id uuid REFERENCES public.user_profiles(id) NOT NULL,
+    date date DEFAULT CURRENT_DATE,
+    created_at timestamptz DEFAULT now(),
+
+    -- Measurements
+    heart_rate int,
+    hrv int,
+    
+    -- Fatigue (0=None, 1=Slight, 2=Moderate, 3=Severe)
+    fatigue_score int CHECK (fatigue_score BETWEEN 0 AND 3),
+    
+    -- Selected Symptoms (List of strings)
+    symptoms text[], 
+    
+    notes text,
+
+    -- CONSTRAINT: One Evening log per user per day.
+    UNIQUE(user_id, date)
+);
+
+
+
+
+
+-- --------------------------------------------------------
+-- 4. LIFESTYLE LOGS (Behavior & Triggers)
 -- --------------------------------------------------------
 CREATE TABLE public.lifestyle_logs (
     log_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id uuid REFERENCES public.user_profiles(id) NOT NULL,
     date date DEFAULT CURRENT_DATE,
+    created_at timestamptz DEFAULT now(),
     
-    exposure_to_heat boolean DEFAULT false,
-    standing_duration_mins int,
-    exercise_mild_mins int,
-    exercise_moderate_mins int,
-    exercise_intense_mins int,
-    excessive_rest boolean DEFAULT false,
+    hot_place boolean DEFAULT false,
+    refined_carbs boolean DEFAULT false,
+    standing_mins int,
+    carbs_grams int,
+    water_litres float,
+    alcohol_units int,
+    rest_too_much boolean DEFAULT false,
     
-    carbs_consumed_grams int,
-    fluid_intake_liters float,
-    alcohol_units float,
-    period_day_count int,
+    ex_mild int,
+    ex_moderate int,
+    ex_intense int,
+    
+    on_period boolean DEFAULT false,
     
     stress_level int CHECK (stress_level BETWEEN 0 AND 3),
-    personal_notes text,
+    notes text,
 
     UNIQUE(user_id, date)
 );
 
 -- --------------------------------------------------------
--- 4. POTS EPISODES (Attack Tracker)
+-- 5. POTS EPISODES (Attack Tracker)
 -- --------------------------------------------------------
-CREATE TABLE public.pots_episodes (
+CREATE TABLE public.episodes (
     episode_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id uuid REFERENCES public.user_profiles(id) NOT NULL,
-    recorded_at timestamptz DEFAULT now(),
+    date date,
+    time time,
+    created_at timestamptz DEFAULT now(),
     
-    -- Severity of specific symptoms during the attack
-    dizziness_upright int CHECK (dizziness_upright BETWEEN 0 AND 3),
-    fainting_feeling int CHECK (fainting_feeling BETWEEN 0 AND 3),
-    palpitations int CHECK (palpitations BETWEEN 0 AND 3),
-    chest_pain int CHECK (chest_pain BETWEEN 0 AND 3),
-    headache int CHECK (headache BETWEEN 0 AND 3),
-    concentration_diff int CHECK (concentration_diff BETWEEN 0 AND 3),
-    muscle_pain int CHECK (muscle_pain BETWEEN 0 AND 3),
-    nausea int CHECK (nausea BETWEEN 0 AND 3),
-    stomach_pain int CHECK (stomach_pain BETWEEN 0 AND 3),
-    constipation_diarrhoea int CHECK (constipation_diarrhoea BETWEEN 0 AND 3),
-    breathing_diff int CHECK (breathing_diff BETWEEN 0 AND 3)
+    -- Store symptom scores as JSONB for flexibility
+    -- e.g. {"Dizziness": 2, "Headache": 1}
+    scores jsonb,
+    
+    notes text
 );
 
 -- --------------------------------------------------------
--- 5. MEASUREMENTS (Hardware Data)
+-- 6. MEASUREMENTS (Hardware Data)
 -- --------------------------------------------------------
 CREATE TABLE public.measurements (
     measurement_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -191,14 +198,16 @@ CREATE TABLE public.consent_logs (
 
 -- Speed up filtering by User (e.g. "Show me User 123's data")
 CREATE INDEX idx_measurements_user ON public.measurements(user_id);
-CREATE INDEX idx_checkins_user ON public.daily_checkins(user_id);
-CREATE INDEX idx_episodes_user ON public.pots_episodes(user_id);
+CREATE INDEX idx_morning_user ON public.morning_checkins(user_id);
+CREATE INDEX idx_evening_user ON public.evening_checkins(user_id);
+CREATE INDEX idx_episodes_user ON public.episodes(user_id);
 CREATE INDEX idx_lifestyle_user ON public.lifestyle_logs(user_id);
 
 -- Speed up filtering by Time (e.g. "Show me last week's data")
 CREATE INDEX idx_measurements_time ON public.measurements(recorded_at);
-CREATE INDEX idx_checkins_date ON public.daily_checkins(date);
-CREATE INDEX idx_episodes_time ON public.pots_episodes(recorded_at);
+CREATE INDEX idx_morning_date ON public.morning_checkins(date);
+CREATE INDEX idx_evening_date ON public.evening_checkins(date);
+CREATE INDEX idx_episodes_date ON public.episodes(date);
 CREATE INDEX idx_lifestyle_date ON public.lifestyle_logs(date);
 
 -- Speed up Study Code lookups (Critical for signup speed)

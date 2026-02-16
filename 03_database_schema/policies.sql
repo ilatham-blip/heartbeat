@@ -3,9 +3,10 @@
 -- ========================================================
 -- Lock down the core tables
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.daily_checkins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.morning_checkins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.evening_checkins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lifestyle_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.pots_episodes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.episodes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.measurements ENABLE ROW LEVEL SECURITY;
 
 -- Lock down the NEW tables
@@ -30,20 +31,33 @@ FOR INSERT WITH CHECK (auth.uid() = id);
 
 
 -- --------------------------------------------------------
--- 2. DAILY CHECK-INS
+-- 2. MORNING CHECK-INS
 -- --------------------------------------------------------
-CREATE POLICY "Users view own checkins" ON public.daily_checkins
+CREATE POLICY "Users view own morning checkins" ON public.morning_checkins
 FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Users create own checkins" ON public.daily_checkins
+CREATE POLICY "Users create own morning checkins" ON public.morning_checkins
 FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users update own checkins" ON public.daily_checkins
+CREATE POLICY "Users update own morning checkins" ON public.morning_checkins
 FOR UPDATE USING (auth.uid() = user_id);
 
 
 -- --------------------------------------------------------
--- 3. LIFESTYLE LOGS
+-- 3. EVENING CHECK-INS
+-- --------------------------------------------------------
+CREATE POLICY "Users view own evening checkins" ON public.evening_checkins
+FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users create own evening checkins" ON public.evening_checkins
+FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users update own evening checkins" ON public.evening_checkins
+FOR UPDATE USING (auth.uid() = user_id);
+
+
+-- --------------------------------------------------------
+-- 4. LIFESTYLE LOGS
 -- --------------------------------------------------------
 CREATE POLICY "Users view own lifestyle" ON public.lifestyle_logs
 FOR SELECT USING (auth.uid() = user_id);
@@ -56,20 +70,20 @@ FOR UPDATE USING (auth.uid() = user_id);
 
 
 -- --------------------------------------------------------
--- 4. POTS EPISODES
+-- 5. POTS EPISODES
 -- --------------------------------------------------------
-CREATE POLICY "Users view own episodes" ON public.pots_episodes
+CREATE POLICY "Users view own episodes" ON public.episodes
 FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Users insert own episodes" ON public.pots_episodes
+CREATE POLICY "Users insert own episodes" ON public.episodes
 FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users update own episodes" ON public.pots_episodes
+CREATE POLICY "Users update own episodes" ON public.episodes
 FOR UPDATE USING (auth.uid() = user_id);
 
 
 -- --------------------------------------------------------
--- 5. MEASUREMENTS
+-- 6. MEASUREMENTS
 -- --------------------------------------------------------
 CREATE POLICY "Users view own measurements" ON public.measurements
 FOR SELECT USING (auth.uid() = user_id);
@@ -80,7 +94,7 @@ FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 
 -- --------------------------------------------------------
--- 6. CONSENT LOGS (New)
+-- 7. CONSENT LOGS (New)
 -- --------------------------------------------------------
 -- Users can see their own consent history.
 CREATE POLICY "Users view own consent" ON public.consent_logs
@@ -95,7 +109,7 @@ FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 
 -- --------------------------------------------------------
--- 7. RESEARCH STUDIES (New)
+-- 8. RESEARCH STUDIES (New)
 -- --------------------------------------------------------
 -- Everyone needs to read this table to check if a study code is valid.
 -- 'true' means the door is open for reading to everyone (even without logging in, if needed).
