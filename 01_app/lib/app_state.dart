@@ -203,10 +203,88 @@ class MyAppState extends ChangeNotifier{
     "Difficulty breathing": 0
     
   };
+    // ---- helpers ----
+  double _avg(List<double> xs) {
+    if (xs.isEmpty) return 0;
+    return xs.reduce((a, b) => a + b) / xs.length;
+  }
+
+  // ---- averages for the tracker page ----
+  double get dizzinessAvg => _avg(dizziness);
+
+  // if you start filling the nausea list, this will work automatically
+  double get nauseaAvg => _avg(nausea);
+
+  // reuse some episodeScores as “summary” metrics
+  double get fatigueAvg =>
+      episodeScores["Difficulty concentrating"] ?? 0;
+
+  double get hydrationAvg =>
+      episodeScores["Difficulty breathing"] ?? 0;
+
+  // More robust averages that consider morning/evening/lifestyle inputs
+  double get combinedDizzinessAvg {
+    final List<double> vals = [];
+    final listAvg = _avg(dizziness);
+    if (listAvg > 0) vals.add(listAvg);
+    final morningVal = morningScores["Dizziness when standing"] ?? 0;
+    if (morningVal > 0) vals.add(morningVal);
+    final episodeVal = episodeScores["Dizziness when standing"] ?? 0;
+    if (episodeVal > 0) vals.add(episodeVal);
+    if (vals.isEmpty) return 0;
+    return _avg(vals);
+  }
+
+  double get combinedFatigueAvg {
+    final List<double> vals = [];
+    final episodeVal = episodeScores["Difficulty concentrating"] ?? 0;
+    if (episodeVal > 0) vals.add(episodeVal);
+    final morningVal = morningScores["Fatigue"] ?? 0;
+    if (morningVal > 0) vals.add(morningVal);
+    final eveningVal = eveningScores["Abnormal Fatigue after rest"] ?? 0;
+    if (eveningVal > 0) vals.add(eveningVal);
+    if (vals.isEmpty) return 0;
+    return _avg(vals);
+  }
+
+  double get combinedHydrationAvg {
+    final List<double> vals = [];
+    final episodeVal = episodeScores["Difficulty breathing"] ?? 0;
+    if (episodeVal > 0) vals.add(episodeVal);
+    final water = lifestyleScores["water_litres"] ?? 0;
+    if (water > 0) {
+      // scale 0..5 litres to 0..10
+      vals.add((water / 5.0) * 10.0);
+    }
+    if (vals.isEmpty) return 0;
+    return _avg(vals);
+  }
+
+  // ---- simple series for the multi‑symptom chart ----
+  List<double> get fatigueSeries =>
+      List<double>.filled(dizziness.length, combinedFatigueAvg);
+
+  List<double> get hydrationSeries =>
+      List<double>.filled(dizziness.length, combinedHydrationAvg);
 
   void updateEpisodeScore(String symptom, double newValue) {
     episodeScores[symptom] = newValue;
     notifyListeners(); 
+  }
+
+  void updateMorningScore(String symptom, double newValue) {
+    morningScores[symptom] = newValue;
+    // mirror into episode summary for tracker use
+    if (symptom == 'Dizziness when standing') {
+      updateEpisodeScore('Dizziness when standing', newValue);
+      try {
+        dizziness.add(newValue);
+      } catch (_) {}
+    }
+    if (symptom == 'Fatigue') {
+      updateEpisodeScore('Difficulty concentrating', newValue);
+    }
+    notifyListeners();
   }
 
   Future<void> saveEpisode({
@@ -225,12 +303,21 @@ class MyAppState extends ChangeNotifier{
         'notes': notes,
       });
     }
-    // Clear local scores if needed, or keep them? 
-    // Usually we clear draft but maybe not scores if they are "current state"? 
-    // Actually per design, episode is a log, so we should probably reset them.
-    for (final key in episodeScores.keys) {
-      episodeScores[key] = 0;
+    // Update in-memory episode summary so tracker shows recent values.
+    scores.forEach((k, v) {
+      episodeScores[k] = v;
+    });
+
+    // If the episode included a dizziness value, add it to the trend list
+    // so the charts update over time.
+    final dizzinessKey = 'Dizziness when standing';
+    if (scores.containsKey(dizzinessKey)) {
+      try {
+        final val = scores[dizzinessKey] ?? 0;
+        dizziness.add(val);
+      } catch (_) {}
     }
+
     notifyListeners();
   }
 
@@ -253,10 +340,6 @@ class MyAppState extends ChangeNotifier{
     "Heart racing and palpitations": 0, 
   };
 
-  void updateMorningScore(String symptom, double newValue) {
-    morningScores[symptom] = newValue;
-    notifyListeners(); 
-  }
 
 
   Map<String, double> eveningScores = {
@@ -266,6 +349,9 @@ class MyAppState extends ChangeNotifier{
 
   void updateEveningScore(String symptom, double newValue) {
     eveningScores[symptom] = newValue;
+    if (symptom == 'Abnormal Fatigue after rest') {
+      updateEpisodeScore('Difficulty concentrating', newValue);
+    }
     notifyListeners(); 
   }
 
@@ -281,6 +367,11 @@ class MyAppState extends ChangeNotifier{
 
   void updateLifestyleScores(String key, double value) {
     lifestyleScores[key] = value;
+    if (key == 'water_litres') {
+      // update hydration episode metric scaled to 0..10
+      final scaled = (value / 5.0) * 10.0;
+      updateEpisodeScore('Difficulty breathing', scaled);
+    }
     notifyListeners();
   }
 
@@ -335,6 +426,13 @@ class MyAppState extends ChangeNotifier{
       notes: notes,
     ));
     eveningDraft = null;
+    // Map the evening fatigue score (0-3) to a 0-10 scale and update
+    // the episode summary so tracker widgets reflect this input.
+    try {
+      final scaledFatigue = (fatigueScore / 3.0) * 10.0;
+      updateEpisodeScore('Difficulty concentrating', scaledFatigue);
+    } catch (_) {}
+
     notifyListeners();
 
     final user = Supabase.instance.client.auth.currentUser;
@@ -388,6 +486,16 @@ class MyAppState extends ChangeNotifier{
       ),
     );
     morningDraft = null;
+    // Convert severity (0..3) into a 0..10 scale for the tracker and
+    // update episode summary values and trend lists.
+    try {
+      final fatigueVal = (fatigue.index / 3.0) * 10.0;
+      final dizzinessVal = (dizzinessStanding.index / 3.0) * 10.0;
+      updateEpisodeScore('Difficulty concentrating', fatigueVal);
+      updateEpisodeScore('Dizziness when standing', dizzinessVal);
+      dizziness.add(dizzinessVal);
+    } catch (_) {}
+
     notifyListeners();
 
     final user = Supabase.instance.client.auth.currentUser;
@@ -487,3 +595,4 @@ class MyAppState extends ChangeNotifier{
       }
     }
 }
+ 
