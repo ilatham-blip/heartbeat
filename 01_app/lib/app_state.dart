@@ -67,6 +67,52 @@ class MorningEntry {
   final String notes;
 }
 
+class EpisodeEntry {
+  EpisodeEntry({
+    required this.dateTime,
+    required this.scores,
+    required this.notes,
+  });
+
+  final DateTime dateTime;
+  final Map<String, double> scores;
+  final String notes;
+}
+
+class LifestyleEntry {
+  LifestyleEntry({
+    required this.date,
+    required this.hotPlace,
+    required this.refinedCarbs,
+    required this.standingMins,
+    required this.carbsGrams,
+    required this.waterLitres,
+    required this.alcoholUnits,
+    required this.restTooMuch,
+    required this.exMildMins,
+    required this.exModerateMins,
+    required this.exIntenseMins,
+    required this.onPeriod,
+    required this.stressLevel,
+    required this.notes,
+  });
+
+  final DateTime date;
+  final bool hotPlace;
+  final bool refinedCarbs;
+  final int standingMins;
+  final int carbsGrams;
+  final double waterLitres;
+  final int alcoholUnits;
+  final bool restTooMuch;
+  final int exMildMins;
+  final int exModerateMins;
+  final int exIntenseMins;
+  final bool onPeriod;
+  final int stressLevel;
+  final String notes;
+}
+
 /// In-memory draft for a paused morning survey.
 class MorningDraft {
   int currentPage;
@@ -151,39 +197,6 @@ class LifestyleDraft {
   }) : date = date ?? DateTime.now();
 }
 
-class LifestyleEntry {
-  LifestyleEntry({
-    required this.date,
-    required this.hotPlace,
-    required this.refinedCarbs,
-    required this.standingMins,
-    required this.carbsGrams,
-    required this.waterLitres,
-    required this.alcoholUnits,
-    required this.restTooMuch,
-    required this.exMildMins,
-    required this.exModerateMins,
-    required this.exIntenseMins,
-    required this.onPeriod,
-    required this.stressLevel,
-    required this.notes,
-  });
-
-  final DateTime date;
-  final bool hotPlace;
-  final bool refinedCarbs;
-  final int standingMins;
-  final int carbsGrams;
-  final double waterLitres;
-  final int alcoholUnits;
-  final bool restTooMuch;
-  final int exMildMins;
-  final int exModerateMins;
-  final int exIntenseMins;
-  final bool onPeriod;
-  final int stressLevel;
-  final String notes;
-}
 class MyAppState extends ChangeNotifier{
   final DatabaseService _databaseService = DatabaseService();
 
@@ -262,10 +275,10 @@ class MyAppState extends ChangeNotifier{
 
   // ---- simple series for the multi‑symptom chart ----
   List<double> get fatigueSeries =>
-      List<double>.filled(dizziness.length, combinedFatigueAvg);
+      dizziness.isNotEmpty ? List<double>.filled(dizziness.length, combinedFatigueAvg) : [combinedFatigueAvg];
 
   List<double> get hydrationSeries =>
-      List<double>.filled(dizziness.length, combinedHydrationAvg);
+      hydration.isNotEmpty ? hydration : [(lifestyleScores["water_litres"] ?? 0) / 5.0 * 10.0];
 
   void updateEpisodeScore(String symptom, double newValue) {
     episodeScores[symptom] = newValue;
@@ -293,16 +306,6 @@ class MyAppState extends ChangeNotifier{
     required Map<String, double> scores,
     required String notes,
   }) async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user != null) {
-      await _databaseService.saveEpisode({
-        'user_id': user.id,
-        'date': date.toIso8601String(),
-        'time': '${time.hour}:${time.minute}',
-        'scores': scores,
-        'notes': notes,
-      });
-    }
     // Update in-memory episode summary so tracker shows recent values.
     scores.forEach((k, v) {
       episodeScores[k] = v;
@@ -318,7 +321,24 @@ class MyAppState extends ChangeNotifier{
       } catch (_) {}
     }
 
+    episodeEntries.insert(0, EpisodeEntry(
+      dateTime: DateTime(date.year, date.month, date.day, time.hour, time.minute),
+      scores: scores,
+      notes: notes,
+    ));
+
     notifyListeners();
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      await _databaseService.saveEpisode({
+        'user_id': user.id,
+        'date': date.toIso8601String(),
+        'time': '${time.hour}:${time.minute}',
+        'scores': scores,
+        'notes': notes,
+      });
+    }
   }
 
   EpisodeDraft? episodeDraft;
@@ -463,6 +483,15 @@ class MyAppState extends ChangeNotifier{
   List<MorningEntry> get morningEntries => List.unmodifiable(_morningEntries);
   MorningDraft? morningDraft;
 
+  // Episode entries storage
+  final List<EpisodeEntry> episodeEntries = [];
+
+  // Lifestyle entries storage
+  final List<LifestyleEntry> _lifestyleEntries = [];
+  final List<double> hydration = [];
+  List<LifestyleEntry> get lifestyleEntries => List.unmodifiable(_lifestyleEntries);
+  LifestyleDraft? lifestyleDraft;
+
   // Save method used by MorningQuiz
   Future<void> saveMorningCheckIn({
     required DateTime date,
@@ -521,9 +550,6 @@ class MyAppState extends ChangeNotifier{
     morningDraft = null;
     notifyListeners();
   }
-    final List<LifestyleEntry> _lifestyleEntries = [];
-    List<LifestyleEntry> get lifestyleEntries => List.unmodifiable(_lifestyleEntries);
-    LifestyleDraft? lifestyleDraft;
 
     void pauseLifestyleSurvey(LifestyleDraft draft) {
       lifestyleDraft = draft;
@@ -571,6 +597,7 @@ class MyAppState extends ChangeNotifier{
         ),
       );
       lifestyleDraft = null;
+      hydration.insert(0, (waterLitres / 5.0) * 10.0 );
       notifyListeners();
 
       final user = Supabase.instance.client.auth.currentUser;

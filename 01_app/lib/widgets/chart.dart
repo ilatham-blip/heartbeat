@@ -201,14 +201,8 @@ class MultiSymptomPlot extends StatelessWidget {
       );
     }
 
-    // compute max X and Y for axis bounds
+    // compute max X for axis bounds (Y is always 0-10)
     final maxLen = [dizziness.length, fatigue.length, hydration.length].reduce((a, b) => a > b ? a : b);
-    double maxY = 10;
-    for (final list in [dizziness, fatigue, hydration]) {
-      for (final v in list) {
-        if (v > maxY) maxY = v;
-      }
-    }
 
     return SizedBox(
       width: width,
@@ -218,12 +212,20 @@ class MultiSymptomPlot extends StatelessWidget {
           minX: 0,
           maxX: (maxLen - 1).toDouble().clamp(0, double.infinity),
           minY: 0,
-          maxY: (maxY < 10) ? 10 : maxY,
+          maxY: 10,
           gridData: FlGridData(show: true),
           borderData: FlBorderData(show: true),
           titlesData: FlTitlesData(
+            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
             bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
-            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                interval: 2,
+                reservedSize: 40,
+              ),
+            ),
           ),
           lineBarsData: lines,
         ),

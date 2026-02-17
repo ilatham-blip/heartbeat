@@ -126,15 +126,25 @@ class _EpisodeQuizState extends State<EpisodeQuiz> {
             ],
             const SizedBox(height: 24),
 
-            // ── Recent episodes placeholder ──
+            // ── Recent episodes ──
             _SectionCard(
               title: 'Recent Episodes',
               leadingIcon: Icons.history,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Text('No recent episodes yet. Start logging!',
-                    style: TextStyle(color: Colors.black45)),
-              ),
+              child: appState.episodeEntries.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text('No recent episodes yet. Start logging!',
+                          style: TextStyle(color: Colors.black45)),
+                    )
+                  : Column(
+                      children: appState.episodeEntries
+                          .take(5)
+                          .map((e) => Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: _EpisodeEntryTile(entry: e),
+                              ))
+                          .toList(),
+                    ),
             ),
           ],
         ),
@@ -309,16 +319,11 @@ class _EpisodeSurveyScreenState extends State<_EpisodeSurveyScreen> {
       
       if (mounted) {
         appState.clearEpisodeDraft();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('POTS episode logged ✓')),
-        );
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text('Error logging episode: $e'), backgroundColor: Colors.red),
-        );
+        Navigator.of(context).pop();
       }
     }
   }
@@ -622,6 +627,66 @@ class _SectionCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _EpisodeEntryTile extends StatelessWidget {
+  const _EpisodeEntryTile({required this.entry});
+
+  final EpisodeEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final dt = entry.dateTime;
+    final dateLabel = '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+    final timeLabel = _format(dt);
+    final symptomCount = entry.scores.values.where((v) => v > 0).length;
+
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: Colors.black12.withValues(alpha: 0.06)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Text(dateLabel,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 14)),
+                const Spacer(),
+                Text(timeLabel,
+                    style: const TextStyle(color: Colors.black54)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _kv('Symptoms reported', '$symptomCount'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _format(DateTime dt) {
+    final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final m = dt.minute.toString().padLeft(2, '0');
+    final suffix = dt.hour < 12 ? 'am' : 'pm';
+    return '$h:$m $suffix';
+  }
+
+  Widget _kv(String k, String v) {
+    return Row(
+      children: [
+        Text(k, style: const TextStyle(color: Colors.black87)),
+        const Spacer(),
+        Text(v,
+            style: const TextStyle(
+                color: Color(0xFF4F7CFF), fontWeight: FontWeight.w600)),
+      ],
     );
   }
 }

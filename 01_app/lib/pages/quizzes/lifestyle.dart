@@ -114,15 +114,25 @@ class _LifestyleQuizState extends State<LifestyleQuiz> {
             ],
             const SizedBox(height: 24),
 
-            // ── Recent entries placeholder ──
+            // ── Recent entries ──
             _SectionCard(
               title: 'Recent Entries',
               leadingIcon: Icons.history,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Text('No recent entries yet. Start logging!',
-                    style: TextStyle(color: Colors.black45)),
-              ),
+              child: appState.lifestyleEntries.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text('No recent entries yet. Start logging!',
+                          style: TextStyle(color: Colors.black45)),
+                    )
+                  : Column(
+                      children: appState.lifestyleEntries
+                          .take(5)
+                          .map((e) => Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: _LifestyleEntryTile(entry: e),
+                              ))
+                          .toList(),
+                    ),
             ),
           ],
         ),
@@ -301,16 +311,11 @@ class _LifestyleSurveyScreenState extends State<_LifestyleSurveyScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Lifestyle entry saved ✓')),
-        );
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving log: $e'), backgroundColor: Colors.red),
-        );
+        Navigator.of(context).pop();
       }
     }
   }
@@ -795,6 +800,56 @@ class _SectionCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _LifestyleEntryTile extends StatelessWidget {
+  const _LifestyleEntryTile({required this.entry});
+
+  final LifestyleEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final dt = entry.date;
+    final dateLabel = '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: Colors.black12.withValues(alpha: 0.06)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Text(dateLabel,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 14)),
+                const Spacer(),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _kv('Water Intake', '${entry.waterLitres} L'),
+            _kv('Exercise', '${entry.exMildMins + entry.exModerateMins + entry.exIntenseMins} mins'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _kv(String k, String v) {
+    return Row(
+      children: [
+        Text(k, style: const TextStyle(color: Colors.black87)),
+        const Spacer(),
+        Text(v,
+            style: const TextStyle(
+                color: Color(0xFF4F7CFF), fontWeight: FontWeight.w600)),
+      ],
     );
   }
 }

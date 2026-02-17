@@ -309,16 +309,11 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Evening log saved ✓')),
-        );
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving log: $e'), backgroundColor: Colors.red),
-        );
+        Navigator.of(context).pop();
       }
     }
   }

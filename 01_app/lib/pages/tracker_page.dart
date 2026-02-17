@@ -15,45 +15,112 @@ class _TrackerPage extends State<TrackerPage> {
   bool _showDizziness = true;
   bool _showFatigue = true;
   bool _showHydration = true;
+  
+  // Helper to compute trend direction from a numeric series
+  Map<String, dynamic> computeTrend(List<double> series) {
+    if (series.isEmpty) {
+      return {
+        'text': 'No data',
+        'icon': Icons.remove,
+        'color': Colors.grey,
+      };
+    }
+
+    // use last 3 vs previous 3 where possible
+    int n = series.length;
+    double recentAvg;
+    double prevAvg;
+    if (n < 2) {
+      recentAvg = series.last;
+      prevAvg = series.first;
+    } else if (n < 4) {
+      recentAvg = series.sublist(n - 1).reduce((a, b) => a + b) / (n - (n - 1));
+      prevAvg = series.sublist(0, n - 1).reduce((a, b) => a + b) / (n - 1);
+    } else {
+      final recentSlice = series.sublist(n - 3, n);
+      final prevSlice = series.sublist(n - 6, n - 3);
+      recentAvg = recentSlice.reduce((a, b) => a + b) / recentSlice.length;
+      prevAvg = prevSlice.reduce((a, b) => a + b) / prevSlice.length;
+    }
+
+    final diff = recentAvg - prevAvg;
+    if (diff.abs() < 0.5) {
+      return {'text': 'Stable', 'icon': Icons.trending_flat, 'color': Colors.blue};
+    } else if (diff > 0) {
+      return {'text': 'Increasing trend', 'icon': Icons.trending_up, 'color': Colors.red};
+    } else {
+      return {'text': 'Decreasing trend', 'icon': Icons.trending_down, 'color': Colors.green};
+    }
+  }
+
+  // Generate health insights based on abnormal parameters
+  List<Map<String, dynamic>> generateHealthInsights(MyAppState appState) {
+    final insights = <Map<String, dynamic>>[];
+    
+    // Define normal/abnormal thresholds (on 0-10 scale)
+    const double dizzinessThreshold = 5.0;
+    const double fatigueThreshold = 5.0;
+    const double hydrationThreshold = 4.0; // Low hydration is concerning
+    
+    // Check Dizziness
+    if (appState.combinedDizzinessAvg > dizzinessThreshold) {
+      insights.add({
+        'title': 'Elevated Dizziness',
+        'message': 'You\'re experiencing elevated dizziness levels (${appState.combinedDizzinessAvg.toStringAsFixed(1)}/10). Please discuss this with your doctor.',
+        'icon': Icons.error_outline,
+        'backgroundColor': const Color(0xFFFFF3E0),
+        'iconColor': Colors.orange,
+        'severity': 'warning',
+      });
+    }
+    
+    // Check Fatigue
+    if (appState.combinedFatigueAvg > fatigueThreshold) {
+      insights.add({
+        'title': 'High Fatigue Levels',
+        'message': 'You\'ve reported high fatigue levels (${appState.combinedFatigueAvg.toStringAsFixed(1)}/10). Consider increasing rest and hydration.',
+        'icon': Icons.local_fire_department,
+        'backgroundColor': const Color(0xFFFFEBEE),
+        'iconColor': Colors.red,
+        'severity': 'warning',
+      });
+    }
+    
+    // Check Hydration
+    if (appState.combinedHydrationAvg < hydrationThreshold) {
+      insights.add({
+        'title': 'Low Hydration Status',
+        'message': 'Your hydration intake appears low (${appState.combinedHydrationAvg.toStringAsFixed(1)}/10). Try to drink more water throughout the day.',
+        'icon': Icons.water_drop,
+        'backgroundColor': const Color(0xFFE3F2FD),
+        'iconColor': Colors.blue,
+        'severity': 'info',
+      });
+    }
+    
+    // Check for combined concerns
+    final abnormalCount = (appState.combinedDizzinessAvg > dizzinessThreshold ? 1 : 0) +
+                          (appState.combinedFatigueAvg > fatigueThreshold ? 1 : 0) +
+                          (appState.combinedHydrationAvg < hydrationThreshold ? 1 : 0);
+    
+    if (abnormalCount >= 2) {
+      insights.add({
+        'title': 'Multiple Symptom Concerns',
+        'message': 'Multiple health metrics are outside normal ranges. Consider scheduling a consultation with your healthcare provider.',
+        'icon': Icons.health_and_safety,
+        'backgroundColor': const Color(0xFFF3E5F5),
+        'iconColor': Colors.purple,
+        'severity': 'critical',
+      });
+    }
+    
+    return insights;
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<MyAppState>(context, listen: true);
-    // helper to compute trend direction from a numeric series
-    Map<String, dynamic> computeTrend(List<double> series) {
-      if (series.isEmpty) {
-        return {
-          'text': 'No data',
-          'icon': Icons.remove,
-          'color': Colors.grey,
-        };
-      }
-
-      // use last 3 vs previous 3 where possible
-      int n = series.length;
-      double recentAvg;
-      double prevAvg;
-      if (n < 2) {
-        recentAvg = series.last;
-        prevAvg = series.first;
-      } else if (n < 4) {
-        recentAvg = series.sublist(n - 1).reduce((a, b) => a + b) / (n - (n - 1));
-        prevAvg = series.sublist(0, n - 1).reduce((a, b) => a + b) / (n - 1);
-      } else {
-        final recentSlice = series.sublist(n - 3, n);
-        final prevSlice = series.sublist(n - 6, n - 3);
-        recentAvg = recentSlice.reduce((a, b) => a + b) / recentSlice.length;
-        prevAvg = prevSlice.reduce((a, b) => a + b) / prevSlice.length;
-      }
-
-      final diff = recentAvg - prevAvg;
-      if (diff.abs() < 0.5) {
-        return {'text': 'Stable', 'icon': Icons.trending_flat, 'color': Colors.blue};
-      } else if (diff > 0) {
-        return {'text': 'Increasing trend', 'icon': Icons.trending_up, 'color': Colors.red};
-      } else {
-        return {'text': 'Decreasing trend', 'icon': Icons.trending_down, 'color': Colors.green};
-      }
-    }
+    final insights = generateHealthInsights(appState);
 
     return Scaffold(
       backgroundColor: kBackgroundColor,
@@ -103,58 +170,118 @@ class _TrackerPage extends State<TrackerPage> {
 
                   const SizedBox(height: 16),
 
-                  // Health Insights alert
-                  _SectionCard(
-                    width: width,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Health Insights',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                  // Health Insights alert - Dynamic
+                  if (insights.isEmpty)
+                    _SectionCard(
+                      width: width,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Health Insights',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFF3E0),
-                            borderRadius: BorderRadius.circular(8),
+                          const SizedBox(height: 12),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE8F5E9),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Icon(Icons.check_circle, color: Colors.green),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'All Systems Normal',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.green,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Your health metrics are within normal ranges.',
+                                        style: TextStyle(
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Icon(Icons.error_outline,
-                                  color: Colors.orange),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
+                        ],
+                      ),
+                    )
+                  else
+                    _SectionCard(
+                      width: width,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Health Insights',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ...insights.map((insight) => 
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: insight['backgroundColor'] as Color,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      'Frequent Dizziness',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                    Icon(
+                                      insight['icon'] as IconData,
+                                      color: insight['iconColor'] as Color,
                                     ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      'You\'re experiencing elevated dizziness levels. Please discuss this with your doctor.',
-                                      style: TextStyle(
-                                        color: Colors.black87,
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            insight['title'] as String,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            insight['message'] as String,
+                                            style: const TextStyle(
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ],
+                            ),
+                          ).toList(),
+                        ],
+                      ),
                     ),
-                  ),
 
                   const SizedBox(height: 16),
 
@@ -293,7 +420,7 @@ class _TrackerPage extends State<TrackerPage> {
                           child: MultiSymptomPlot(
                                 width: constraints.maxWidth * 0.9,
                                 height: constraints.maxHeight / 3,
-                                dizziness: _showDizziness ? appState.dizziness : const [],
+                                dizziness: _showDizziness ? (appState.dizziness.isNotEmpty ? appState.dizziness : [appState.combinedDizzinessAvg]) : const [],
                                 fatigue: _showFatigue ? appState.fatigueSeries : const [],
                                 hydration: _showHydration ? appState.hydrationSeries : const [],
                               ),

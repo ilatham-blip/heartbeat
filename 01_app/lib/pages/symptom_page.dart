@@ -20,7 +20,7 @@ class _SymptomPage extends State<SymptomPage> {
   Widget build(BuildContext context) {
     final appState = Provider.of<MyAppState>(context, listen: true);
     Widget dailyWidget;
-   if(DateTime.now().hour<15){
+   if(DateTime.now().hour<17){
           dailyWidget = MorningQuiz();
         } else{
           dailyWidget = EveningQuiz();
