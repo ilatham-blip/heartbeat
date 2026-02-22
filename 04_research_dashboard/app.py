@@ -70,19 +70,26 @@ except Exception as e:
 if "page_selection" not in st.session_state:
     st.session_state.page_selection = "Home"
 
-# Sidebar Navigation
 with st.sidebar:
-    st.image("https://emojicdn.elk.sh/❤️", width=50) # Placeholder logo
+    st.image("https://emojicdn.elk.sh/❤️", width=50)
     st.title("Heartbeat")
     
-    # Navigation Buttons
-    # distinct from st.radio to allow programmatic switching easily if needed, but st.radio with key is standard.
-    # We use st.radio with key to bind to session state.
-    st.radio(
-        "Navigate",
-        ["Home", "Data Dashboard", "More"],
-        key="page_selection"
-    )
+    st.markdown("---")
+    
+    # Create custom navigation buttons vertically
+    if st.button("🏠\nHome", key="btn_home", use_container_width=True):
+        st.session_state.page_selection = "Home"
+        st.rerun()
+    
+    if st.button("➕\nDashboard", key="btn_dashboard", use_container_width=True):
+        st.session_state.page_selection = "Data Dashboard"
+        st.rerun()
+    
+    if st.button("☰\nMore", key="btn_more", use_container_width=True):
+        st.session_state.page_selection = "More"
+        st.rerun()
+    
+    st.markdown("---")
 
 # Routing
 page = st.session_state.page_selection
