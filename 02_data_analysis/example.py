@@ -4,15 +4,18 @@
 
 import os
 import warnings
-from e2e_ppg_pipeline import e2e_hrv_extraction
-from retrieve import load_ppg_into_pipeline
-warnings.filterwarnings("ignore")
+from e2epyppg.e2e_ppg_pipeline import e2e_hrv_extraction
+from e2epyppg.utils import get_data
+warnings.filterwarnings('ignore', category=Warning, module='tensorflow')
+
 
 
 # Import a sample data
 from retrieve import load_ppg_into_pipeline
 
 measurement, ppg_df = load_ppg_into_pipeline("bde02a90-6b1d-4342-b5f7-d0fe93b0a1fd")
+input_sig = ppg_df['A1']
+
 
 
 # Set the window length for HR and HRV extraction in seconds
@@ -20,7 +23,7 @@ window_length_sec = 60
 
 # Extract HRV parameters from the input PPG signal
 hrv_data = e2e_hrv_extraction(
-    input_sig=ppg_df,
+    input_sig=input_sig,
     sampling_rate=100,
     window_length_sec=window_length_sec,
     peak_detection_method='kazemi')
