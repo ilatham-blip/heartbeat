@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-const kBrandBlue = Color(0xFF1E40AF);
-const kBackgroundWhite = Color(0xFFFAFAFA);
+import 'edit_lifestyle_page.dart';
+import 'edit_hads_page.dart';
 
 class MyProfilePage extends StatefulWidget {
   const MyProfilePage({super.key});
@@ -54,7 +54,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundWhite,
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
         title: const Text(
           "My Profile",
@@ -117,7 +117,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
             iconColor: kBrandBlue,
             children: [
               _buildInfoRow('Age', _profile!['age']?.toString() ?? 'Not specified'),
-              _buildInfoRow('Gender', _profile!['gender'] ?? 'Not specified'),
+              _buildInfoRow('Sex', _profile!['gender'] ?? 'Not specified'),
               _buildInfoRow('Race/Ethnicity', _profile!['race'] ?? 'Not specified'),
             ],
           ),
@@ -148,6 +148,17 @@ class _MyProfilePageState extends State<MyProfilePage> {
             title: 'Lifestyle Baseline',
             icon: Icons.fitness_center_outlined,
             iconColor: Colors.green,
+            onEdit: () async {
+              final changed = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => EditLifestylePage(
+                    currentAlcoholUnits: _profile!['avg_alcohol_units_weekly'] as int?,
+                    currentExerciseMins: _profile!['avg_exercise_mins_weekly'] as int?,
+                  ),
+                ),
+              );
+              if (changed == true) _fetchProfile();
+            },
             children: [
               _buildInfoRow(
                 'Alcohol (units/week)',
@@ -166,6 +177,12 @@ class _MyProfilePageState extends State<MyProfilePage> {
             title: 'Mental Health Baseline (HADS)',
             icon: Icons.psychology_outlined,
             iconColor: Colors.purple,
+            onEdit: () async {
+              final changed = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(builder: (_) => const EditHADSPage()),
+              );
+              if (changed == true) _fetchProfile();
+            },
             children: [
               _buildHADSScoreRow(
                 'Anxiety Score',
@@ -184,19 +201,6 @@ class _MyProfilePageState extends State<MyProfilePage> {
           ),
           const SizedBox(height: 16),
 
-          // Research Study Section
-          _buildSection(
-            title: 'Research Study',
-            icon: Icons.science_outlined,
-            iconColor: Colors.orange,
-            children: [
-              _buildInfoRow(
-                'Study Code',
-                _profile!['research_study_code'] ?? 'Not enrolled',
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
 
           // Account Info
           _buildSection(
@@ -277,6 +281,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
     required IconData icon,
     required Color iconColor,
     required List<Widget> children,
+    VoidCallback? onEdit,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -306,14 +311,24 @@ class _MyProfilePageState extends State<MyProfilePage> {
                   child: Icon(icon, color: iconColor, size: 20),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
+                if (onEdit != null)
+                  IconButton(
+                    icon: Icon(Icons.edit_outlined, color: iconColor, size: 20),
+                    onPressed: onEdit,
+                    tooltip: 'Edit',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
               ],
             ),
           ),
@@ -360,88 +375,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
   }
 
   Widget _buildHADSScoreRow(String label, int? score, {bool isTotal = false}) {
-    String severityLabel;
-    Color severityColor;
-
-    if (score == null) {
-      severityLabel = 'Not completed';
-      severityColor = Colors.grey;
-    } else if (isTotal) {
-      // Total score interpretation (0-42)
-      if (score <= 14) {
-        severityLabel = 'Normal';
-        severityColor = Colors.green;
-      } else if (score <= 20) {
-        severityLabel = 'Borderline';
-        severityColor = Colors.orange;
-      } else {
-        severityLabel = 'Abnormal';
-        severityColor = Colors.red;
-      }
-    } else {
-      // Individual subscale interpretation (0-21)
-      if (score <= 7) {
-        severityLabel = 'Normal';
-        severityColor = Colors.green;
-      } else if (score <= 10) {
-        severityLabel = 'Borderline';
-        severityColor = Colors.orange;
-      } else {
-        severityLabel = 'Abnormal';
-        severityColor = Colors.red;
-      }
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Row(
-              children: [
-                Text(
-                  score?.toString() ?? 'N/A',
-                  style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (score != null) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: severityColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      severityLabel,
-                      style: TextStyle(
-                        color: severityColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+    return _buildInfoRow(label, score?.toString() ?? 'N/A');
   }
 
   String _formatComorbidities(dynamic comorbidities) {

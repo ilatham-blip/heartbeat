@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'more_pages/aboutus_page.dart';
-import 'more_pages/exportdata_page.dart';
+
 import 'more_pages/myprofile_page.dart';
 import 'more_pages/notificationsettings_page.dart';
 import 'more_pages/researchstudy_page.dart';
-
-const kBrandBlue = Color(0xFF1E40AF);
-const kBackgroundWhite = Color(0xFFFAFAFA); // Slightly off-white for contrast
 
 class MorePage extends StatelessWidget {
   const MorePage({super.key});
@@ -19,14 +17,15 @@ class MorePage extends StatelessWidget {
     final email = user?.email ?? "No Email Found";
 
     return Scaffold(
-      backgroundColor: kBackgroundWhite,
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        title: const Text(
-          "Health Monitor",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-        ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: kBrandBlue,
+        foregroundColor: Colors.white,
         elevation: 0,
+        title: const Text(
+          'More',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         centerTitle: false,
         automaticallyImplyLeading: false,
       ),
@@ -133,15 +132,7 @@ class MorePage extends StatelessWidget {
               subtitle: "Manage your notifications",
               destination: const NotificationSettingsPage(),
             ),
-            _buildMenuItem(
-              context,
-              icon: Icons.download_outlined,
-              iconColor: const Color(0xFF4F46E5),
-              iconBgColor: const Color(0xFFEEF2FF),
-              title: "Export My Data",
-              subtitle: "Download your health data",
-              destination: const ExportDataPage(),
-            ),
+
 
             const SizedBox(height: 8),
 

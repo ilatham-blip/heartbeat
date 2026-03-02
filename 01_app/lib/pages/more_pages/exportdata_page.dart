@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert';
-
-const kBrandBlue = Color(0xFF1E40AF);
-const kBackgroundWhite = Color(0xFFFAFAFA);
 
 class ExportDataPage extends StatefulWidget {
   const ExportDataPage({super.key});
@@ -19,7 +17,7 @@ class _ExportDataPageState extends State<ExportDataPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundWhite,
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
         title: const Text(
           "Export My Data",
@@ -74,14 +72,6 @@ class _ExportDataPageState extends State<ExportDataPage> {
                   title: 'POTS Episodes',
                   description: 'Recorded symptom flare-ups',
                   dataType: 'episodes',
-                ),
-                const Divider(height: 1),
-                _buildExportOption(
-                  icon: Icons.favorite,
-                  iconColor: Colors.pink,
-                  title: 'Heart Rate Measurements',
-                  description: 'HRV metrics and analysis results',
-                  dataType: 'measurements',
                 ),
               ],
             ),
@@ -459,14 +449,7 @@ class _ExportDataPageState extends State<ExportDataPage> {
         exportData['pots_episodes'] = episodes;
       }
 
-      if (dataType == 'all' || dataType == 'measurements') {
-        final measurements = await Supabase.instance.client
-            .from('measurements')
-            .select()
-            .eq('user_id', user.id)
-            .order('recorded_at', ascending: false);
-        exportData['measurements'] = measurements;
-      }
+
 
       // Show export result
       if (mounted) {

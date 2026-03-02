@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-const kBrandBlue = Color(0xFF1E40AF);
-const kBackgroundWhite = Color(0xFFFAFAFA);
 const kCardPurple = Color(0xFF7C3AED);
 
 class ResearchStudyPage extends StatefulWidget {
@@ -75,7 +74,7 @@ class _ResearchStudyPageState extends State<ResearchStudyPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundWhite,
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
         title: const Text(
           "Research Study",

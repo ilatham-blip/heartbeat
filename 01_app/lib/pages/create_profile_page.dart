@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
@@ -189,8 +190,9 @@ class _CreateProfilePageState extends State<CreateProfilePage> {
       if (mounted) {
         final appState = Provider.of<MyAppState>(context, listen: false);
         appState.changeIndex(0);
-        Navigator.of(context).pushReplacement(
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => AppLayout()),
+          (route) => false,
         );
       }
     } catch (e) {
@@ -211,7 +213,7 @@ class _CreateProfilePageState extends State<CreateProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FF),
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -332,7 +334,7 @@ class _CreateProfilePageState extends State<CreateProfilePage> {
           ),
           const SizedBox(height: 16),
           _buildDropdown(
-            label: 'Gender',
+            label: 'Sex',
             value: _selectedGender,
             items: _genderOptions,
             onChanged: (val) => setState(() => _selectedGender = val),
@@ -554,23 +556,10 @@ class _CreateProfilePageState extends State<CreateProfilePage> {
   }
 
   Widget _buildButton(String text, VoidCallback? onPressed) {
-    return ElevatedButton(
+    return HeartbeatButton(
+      label: text,
       onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF0F172A),
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-      child: _isLoading
-          ? const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-            )
-          : Text(text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+      isLoading: _isLoading,
     );
   }
 }

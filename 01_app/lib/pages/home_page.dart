@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:heartbeat/app_state.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:heartbeat/test_connection.dart';
+import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,8 +16,15 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        title: const Text('Health Monitor'),
+        backgroundColor: kBrandBlue,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          'Health Monitor',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         actions: [
           // Developer/Test button (as in your current code)
           IconButton(
@@ -75,7 +85,7 @@ class _HomePageState extends State<HomePage> {
                 leading: const Icon(Icons.checklist_rtl_rounded,
                     color: Colors.black87),
                 onTap: () {
-                  // TODO: Navigate to your questionnaire screen
+                  Provider.of<MyAppState>(context, listen: false).changeIndex(1);
                 },
               ),
               const SizedBox(height: 12),
@@ -85,7 +95,7 @@ class _HomePageState extends State<HomePage> {
                 leading:
                     const Icon(Icons.favorite_border, color: Colors.black87),
                 onTap: () {
-                  // TODO: Navigate to episode logging
+                  Provider.of<MyAppState>(context, listen: false).changeIndex(1, symptomTab: 1);
                 },
               ),
               const SizedBox(height: 12),
@@ -95,7 +105,7 @@ class _HomePageState extends State<HomePage> {
                 leading:
                     const Icon(Icons.insights_rounded, color: Colors.black87),
                 onTap: () {
-                  // TODO: Navigate to insights
+                  Provider.of<MyAppState>(context, listen: false).changeIndex(2);
                 },
               ),
               const SizedBox(height: 32),

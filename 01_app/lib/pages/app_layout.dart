@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:heartbeat/app_state.dart';
+import 'package:heartbeat/app_theme.dart';
 import 'package:heartbeat/pages/home_page.dart';
 import 'package:heartbeat/pages/more_page.dart';
 import 'package:heartbeat/pages/symptom_page.dart';
 
 import 'package:provider/provider.dart';
 import 'tracker_page.dart';
-
-const kBrandBlue = Color(0xFF1E40AF);
 
 class AppLayout extends StatefulWidget {
   @override
@@ -38,7 +37,7 @@ class _AppLayoutState extends State<AppLayout> {
     return LayoutBuilder(
       builder: (context, constraints) {
         return Scaffold(
-          backgroundColor: const Color(0xFFFAFAFA),
+          backgroundColor: kBackgroundColor,
           bottomNavigationBar: Container(
             decoration: BoxDecoration(
               color: Colors.white,
