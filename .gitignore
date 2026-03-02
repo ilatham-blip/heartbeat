@@ -39,6 +39,10 @@ migrate_working_dir/
 01_app/coverage/
 
 
+# Streamlit Related
+04_research_dashboard/venv/
+04_research_dashboard/.streamlit/secrets.toml
+
 # Symbolication related
 app.*.symbols
 

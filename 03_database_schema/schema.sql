@@ -1,3 +1,4 @@
+
 -- --------------------------------------------------------
 -- 1. USER PROFILES 
 -- --------------------------------------------------------
@@ -101,6 +102,10 @@ CREATE TABLE public.evening_checkins (
     -- CONSTRAINT: One Evening log per user per day.
     UNIQUE(user_id, date)
 );
+
+
+
+
 
 -- --------------------------------------------------------
 -- 4. LIFESTYLE LOGS (Behavior & Triggers)
