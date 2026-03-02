@@ -13,11 +13,35 @@ dependencies:
   provider: ^6.1.5
   fl_chart: ^1.1.1
   supabase_flutter: ^2.12.0
+  url_launcher: ^6.2.0
+  shared_preferences: ^2.2.0
+  flutter_local_notifications: ^18.0.0
+  timezone: ^0.10.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  dart_define: ^2.1.2
 
 flutter:
   uses-material-design: true
+
+dart_define:
+
+    dart: true 
+
+    json: true 
+
+    json_path: dart_define.json 
+
+    dart_path: lib/dart_define.gen.dart 
+
+    class_name: dart_define 
+
+    variables: # needs configuring
+        - name: URL
+          description: supabase url
+          required: true
+        - name: ANONKEY
+          description: supabase anonymous access key

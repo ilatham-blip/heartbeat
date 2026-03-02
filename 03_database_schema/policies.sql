@@ -1,16 +1,17 @@
--- THIS FILE ALREADY BUILT THE TABLES ON THE WEBSITE
--- THIS IS JUST VERSION CONTROL/BACKUP
-
 -- ========================================================
 -- STEP 1: TURN ON THE SECURITY SYSTEM
 -- ========================================================
--- By default, tables are "Open". We must lock them first.
-
+-- Lock down the core tables
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.daily_checkins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.morning_checkins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.evening_checkins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lifestyle_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.pots_episodes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.episodes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.measurements ENABLE ROW LEVEL SECURITY;
+
+-- Lock down the NEW tables
+ALTER TABLE public.consent_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.research_studies ENABLE ROW LEVEL SECURITY;
 
 -- ========================================================
 -- STEP 2: DEFINE THE RULES (POLICIES)
@@ -19,78 +20,102 @@ ALTER TABLE public.measurements ENABLE ROW LEVEL SECURITY;
 -- --------------------------------------------------------
 -- 1. USER PROFILES
 -- --------------------------------------------------------
--- Users can read their own profile.
 CREATE POLICY "Users view own profile" ON public.user_profiles
 FOR SELECT USING (auth.uid() = id);
 
--- Users can update their own medical history (e.g. toggling EDS/MCAS).
 CREATE POLICY "Users update own profile" ON public.user_profiles
 FOR UPDATE USING (auth.uid() = id);
 
--- Users can create their profile on first login.
 CREATE POLICY "Users insert own profile" ON public.user_profiles
 FOR INSERT WITH CHECK (auth.uid() = id);
 
 
 -- --------------------------------------------------------
--- 2. DAILY CHECK-INS (Morning/Evening Logs)
+-- 2. MORNING CHECK-INS
 -- --------------------------------------------------------
--- Users can see their own history.
-CREATE POLICY "Users view own checkins" ON public.daily_checkins
+CREATE POLICY "Users view own morning checkins" ON public.morning_checkins
 FOR SELECT USING (auth.uid() = user_id);
 
--- Users can create a new morning log.
-CREATE POLICY "Users create own checkins" ON public.daily_checkins
+CREATE POLICY "Users create own morning checkins" ON public.morning_checkins
 FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Users can update the log later (e.g. filling in the Evening section).
-CREATE POLICY "Users update own checkins" ON public.daily_checkins
+CREATE POLICY "Users update own morning checkins" ON public.morning_checkins
 FOR UPDATE USING (auth.uid() = user_id);
 
 
 -- --------------------------------------------------------
--- 3. LIFESTYLE LOGS
+-- 3. EVENING CHECK-INS
 -- --------------------------------------------------------
--- Users can see their own lifestyle data.
+CREATE POLICY "Users view own evening checkins" ON public.evening_checkins
+FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users create own evening checkins" ON public.evening_checkins
+FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users update own evening checkins" ON public.evening_checkins
+FOR UPDATE USING (auth.uid() = user_id);
+
+
+-- --------------------------------------------------------
+-- 4. LIFESTYLE LOGS
+-- --------------------------------------------------------
 CREATE POLICY "Users view own lifestyle" ON public.lifestyle_logs
 FOR SELECT USING (auth.uid() = user_id);
 
--- Users can create new lifestyle entries.
 CREATE POLICY "Users insert own lifestyle" ON public.lifestyle_logs
 FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Users can fix mistakes.
 CREATE POLICY "Users update own lifestyle" ON public.lifestyle_logs
 FOR UPDATE USING (auth.uid() = user_id);
 
 
 -- --------------------------------------------------------
--- 4. POTS EPISODES (Attacks)
+-- 5. POTS EPISODES
 -- --------------------------------------------------------
--- Users can see their own episode history.
-CREATE POLICY "Users view own episodes" ON public.pots_episodes
+CREATE POLICY "Users view own episodes" ON public.episodes
 FOR SELECT USING (auth.uid() = user_id);
 
--- Users can log a new attack.
-CREATE POLICY "Users insert own episodes" ON public.pots_episodes
+CREATE POLICY "Users insert own episodes" ON public.episodes
 FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Users can update an attack (e.g. adding symptoms after it passes).
-CREATE POLICY "Users update own episodes" ON public.pots_episodes
+CREATE POLICY "Users update own episodes" ON public.episodes
 FOR UPDATE USING (auth.uid() = user_id);
 
 
 -- --------------------------------------------------------
--- 5. MEASUREMENTS (Hardware Data)
+-- 6. MEASUREMENTS
 -- --------------------------------------------------------
--- Users can see their own heart data.
 CREATE POLICY "Users view own measurements" ON public.measurements
 FOR SELECT USING (auth.uid() = user_id);
 
--- Users can upload a reference to a file they uploaded.
 CREATE POLICY "Users insert own measurements" ON public.measurements
 FOR INSERT WITH CHECK (auth.uid() = user_id);
+-- Note: No UPDATE policy. Only the Python backend (Service Role) can update results.
 
--- NOTE: We generally DO NOT allow users to UPDATE measurements.
--- The Python script updates the results (HRV score), not the user.
--- So we skip the UPDATE policy here for safety.
+
+-- --------------------------------------------------------
+-- 7. CONSENT LOGS (New)
+-- --------------------------------------------------------
+-- Users can see their own consent history.
+CREATE POLICY "Users view own consent" ON public.consent_logs
+FOR SELECT USING (auth.uid() = user_id);
+
+-- Users can sign a new consent form.
+CREATE POLICY "Users sign consent" ON public.consent_logs
+FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- CRITICAL: NO UPDATE POLICY.
+-- Once a legal consent form is signed, it should never be modified.
+
+
+-- --------------------------------------------------------
+-- 8. RESEARCH STUDIES (New)
+-- --------------------------------------------------------
+-- Everyone needs to read this table to check if a study code is valid.
+-- 'true' means the door is open for reading to everyone (even without logging in, if needed).
+CREATE POLICY "Public read access for studies" ON public.research_studies
+FOR SELECT USING (true);
+
+-- CRITICAL: NO INSERT/UPDATE POLICY.
+-- Regular users can never create or edit a research study. 
+-- Only you (the admin) can do this via the Supabase Dashboard.
