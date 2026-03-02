@@ -1,5 +1,7 @@
 package com.example.heartbeat;
 
+import info.plux.api.bitalino.BITalinoFrame;
+
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -120,13 +122,25 @@ public class PluxHandler {
     };
 
     // Using the unified OnDataAvailable interface we know the compiler accepts
+    // Using the unified OnDataAvailable interface we know the compiler accepts
     private final OnDataAvailable onDataAvailable = new OnDataAvailable() {
         @Override
         public void onDataAvailable(Parcelable data) {
-            Log.d("PLUX", ">>> DATA RECEIVED FROM BITALINO");
+            if (data instanceof BITalinoFrame) {
+                BITalinoFrame frame = (BITalinoFrame) data;
+
+                // The array we sent was {0, 1, 2, 3, 4, 5}.
+                // Index 0 is A1, Index 1 is A2.
+                int a1Value = frame.getAnalog(0);
+                int a2Value = frame.getAnalog(1);
+
+                Log.d("PLUX", ">>> A1: " + a1Value + " | A2: " + a2Value);
+            }
         }
+
         @Override
         public void onDataAvailable(String id, int seq, int[] analog, int digital) {}
+
         @Override
         public void onDataLost(String id, int n) {}
     };
