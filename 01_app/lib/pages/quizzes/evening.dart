@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:heartbeat/app_state.dart';
 import 'package:heartbeat/widgets/quiz_bottom_bar.dart';
 import 'package:heartbeat/widgets/quiz_next_button.dart';
+import 'package:heartbeat/services/plux_service.dart';
+import 'dart:async';
+import 'dart:math' as math;
 
 /// Evening quiz: landing page (embedded in tabs) + full-screen paged survey.
 class EveningQuiz extends StatefulWidget {
@@ -119,26 +122,26 @@ class _EveningQuizState extends State<EveningQuiz> {
               leadingIcon: Icons.history,
               child: appState.eveningEntries.isEmpty
                   ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Text('No entries yet', style: TextStyle(color: Colors.black45)),
-                    )
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text('No entries yet', style: TextStyle(color: Colors.black45)),
+              )
                   : Column(
-                      children: appState.eveningEntries
-                          .take(5)
-                          .map((e) => Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: _RecentEntryTile(
-                                  dateLabel:
-                                      '${e.dateTime.day.toString().padLeft(2, '0')}/${e.dateTime.month.toString().padLeft(2, '0')}/${e.dateTime.year}',
-                                  timeLabel:
-                                      '${e.dateTime.hour.toString().padLeft(2, '0')}:${e.dateTime.minute.toString().padLeft(2, '0')}',
-                                  heartRate: '${e.heartRateBpm} bpm',
-                                  hrv: '${e.hrvMs} ms',
-                                  fatigue: _fatigueLabelFromScore(e.fatigueScore),
-                                ),
-                              ))
-                          .toList(),
-                    ),
+                children: appState.eveningEntries
+                    .take(5)
+                    .map((e) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _RecentEntryTile(
+                    dateLabel:
+                    '${e.dateTime.day.toString().padLeft(2, '0')}/${e.dateTime.month.toString().padLeft(2, '0')}/${e.dateTime.year}',
+                    timeLabel:
+                    '${e.dateTime.hour.toString().padLeft(2, '0')}:${e.dateTime.minute.toString().padLeft(2, '0')}',
+                    heartRate: '${e.heartRateBpm} bpm',
+                    hrv: '${e.hrvMs} ms',
+                    fatigue: _fatigueLabelFromScore(e.fatigueScore),
+                  ),
+                ))
+                    .toList(),
+              ),
             ),
           ],
         ),
@@ -186,6 +189,7 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
   final Set<String> _selectedSymptoms = {};
   final TextEditingController _notesCtrl = TextEditingController();
   final PageController _pageCtrl = PageController();
+  final _pluxService = PluxService();
 
   final List<String> _symptomOptions = const [
     'Muscle pain',
@@ -198,10 +202,31 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
     'Palpitations, high pulse, or feeling heart beating irregularly',
   ];
 
+  // --- PLUX STATE VARIABLES ---
+  final int _recordDuration = 5;
+  bool _isPluxConnected = false;
+
+  // App Modes
+  bool _isTesting = false;
+  bool _isRecording = false;
+  bool _recordingDone = false;
+
+  // The permanent 20s buckets (for the database)
+  final List<double> _ppgData = [];
+  final List<double> _ecgData = [];
+
+  // The temporary scrolling graph buckets (keeps last 150 points)
+  final List<double> _graphPpgBuffer = [];
+  final List<double> _graphEcgBuffer = [];
+  static const int _maxGraphPoints = 150;
+
+  Timer? _recordingTimer;
+  StreamSubscription<List<double>>? _dataSubscription;
+
+  // ADDED BACK: This restores saved drafts if the user pauses!
   @override
   void initState() {
     super.initState();
-    // If a draft exists, restore it
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final appState = Provider.of<MyAppState>(context, listen: false);
       final draft = appState.eveningDraft;
@@ -213,9 +238,8 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
           _hrCtrl.text = draft.heartRateBpm?.toString() ?? '';
           _hrvCtrl.text = draft.hrvMs?.toString() ?? '';
           _fatigueScore = draft.fatigueScore;
-          _selectedSymptoms
-            ..clear()
-            ..addAll(draft.selectedSymptoms);
+          _selectedSymptoms.clear();
+          _selectedSymptoms.addAll(draft.selectedSymptoms);
           _notesCtrl.text = draft.notes;
         });
         if (_pageCtrl.hasClients) {
@@ -227,6 +251,13 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
 
   @override
   void dispose() {
+    _recordingTimer?.cancel();
+    _dataSubscription?.cancel();
+
+    // --- Kill the zombie connection when leaving the page! ---
+    _pluxService.disconnect();
+    // ---------------------------------------------------------
+
     _hrCtrl.dispose();
     _hrvCtrl.dispose();
     _notesCtrl.dispose();
@@ -234,23 +265,136 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
     super.dispose();
   }
 
+  Future<void> _startHardwareAndListen() async {
+    if (_dataSubscription != null) return;
+
+    await _pluxService.startRecording();
+
+    _dataSubscription = _pluxService.heartDataStream.listen((dataPair) {
+      if (dataPair.length == 2) {
+        setState(() {
+          _graphPpgBuffer.add(dataPair[0]);
+          _graphEcgBuffer.add(dataPair[1]);
+
+          if (_graphPpgBuffer.length > _maxGraphPoints) {
+            _graphPpgBuffer.removeAt(0);
+            _graphEcgBuffer.removeAt(0);
+          }
+        });
+
+        if (_isRecording) {
+          _ppgData.add(dataPair[0]);
+          _ecgData.add(dataPair[1]);
+        }
+      }
+    });
+  }
+
+  Future<void> _stopHardwareAndListen() async {
+    _dataSubscription?.cancel();
+    _dataSubscription = null;
+    await _pluxService.stopRecording();
+  }
+
+  // --- BUTTON ACTIONS ---
+
+  void _toggleTesting() async {
+    if (_isTesting) {
+      await _stopHardwareAndListen();
+      setState(() => _isTesting = false);
+    } else {
+      setState(() {
+        _isTesting = true;
+        _graphPpgBuffer.clear();
+        _graphEcgBuffer.clear();
+      });
+      await _startHardwareAndListen();
+    }
+  }
+
+  // Starts the official recording
+  void _startRecording() async {
+    setState(() {
+      _isRecording = true;
+      _isTesting = false;
+      _recordingDone = false;
+      _ppgData.clear();
+      _ecgData.clear();
+      _graphPpgBuffer.clear();
+      _graphEcgBuffer.clear();
+    });
+
+    await _startHardwareAndListen();
+
+    _recordingTimer = Timer(Duration(seconds: _recordDuration), () {
+      if (mounted) _finishRecording();
+    });
+  }
+
+  void _finishRecording() {
+    _stopHardwareAndListen();
+
+    print('RECORDING FINISHED! Saved ${_ppgData.length} data points.');
+    print('PPG (A1): $_ppgData');
+    print('ECG (A2): $_ecgData');
+
+    setState(() {
+      _isRecording = false;
+      _recordingDone = true;
+      _hrCtrl.text = _ppgData.isNotEmpty ? _ppgData.length.toString() : "0";
+      _hrvCtrl.text = "45";
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(' ${_recordDuration}s complete!'), backgroundColor: Colors.green),
+      );
+    }
+  }
+
+  void _cancelRecording() {
+    _recordingTimer?.cancel();
+    _stopHardwareAndListen();
+
+    setState(() {
+      _isRecording = false;
+      _isTesting = false;
+      _ppgData.clear();
+      _ecgData.clear();
+    });
+  }
+
+  void _redoRecording() {
+    setState(() {
+      _recordingDone = false;
+      _ppgData.clear();
+      _ecgData.clear();
+      _graphPpgBuffer.clear();
+      _graphEcgBuffer.clear();
+      _hrCtrl.clear();
+      _hrvCtrl.clear();
+    });
+  }
+
   // ─── Helpers ───────────────────────────────────────────────
 
   EveningDraft _buildDraft() => EveningDraft(
-        currentPage: _currentPage,
-        date: _date,
-        time: _time,
-        heartRateBpm: int.tryParse(_hrCtrl.text),
-        hrvMs: int.tryParse(_hrvCtrl.text),
-        fatigueScore: _fatigueScore,
-        selectedSymptoms: Set.of(_selectedSymptoms),
-        notes: _notesCtrl.text,
-      );
+    currentPage: _currentPage,
+    date: _date,
+    time: _time,
+    heartRateBpm: int.tryParse(_hrCtrl.text),
+    hrvMs: int.tryParse(_hrvCtrl.text),
+    fatigueScore: _fatigueScore,
+    selectedSymptoms: Set.of(_selectedSymptoms),
+    notes: _notesCtrl.text,
+  );
 
-  void _pauseSurvey() {
+  void _pauseSurvey() async {
     final appState = Provider.of<MyAppState>(context, listen: false);
     appState.pauseEveningReview(_buildDraft());
-    Navigator.of(context).pop();
+
+    await _pluxService.disconnect();
+    if (mounted) Navigator.of(context).pop();
   }
 
   void _stopSurvey() async {
@@ -272,6 +416,8 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
     );
     if (confirmed == true) {
       appState.clearEveningDraft();
+
+      await _pluxService.disconnect();
       if (mounted) Navigator.of(context).pop();
     }
   }
@@ -306,12 +452,15 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
         fatigueScore: _fatigueScore ?? 0,
         baselineSymptoms: _selectedSymptoms.toList(),
         notes: _notesCtrl.text.trim(),
+        // rawPluxData: _ppgData,
       );
 
+      await _pluxService.disconnect();
       if (mounted) {
         Navigator.of(context).pop();
       }
     } catch (e) {
+      await _pluxService.disconnect();
       if (mounted) {
         Navigator.of(context).pop();
       }
@@ -325,7 +474,7 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
-        automaticallyImplyLeading: false, // we handle our own nav
+        automaticallyImplyLeading: false,
         title: const Text('Evening Log'),
         centerTitle: true,
       ),
@@ -382,7 +531,7 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
     );
   }
 
-  // ── Page 1: HRV ────────────────────────────────────────────
+  // ── Page 1: HRV ───────────────────────────────────────────
 
   Widget _buildHRVPage() {
     return SingleChildScrollView(
@@ -405,7 +554,8 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
                   decoration: const InputDecoration(
                     hintText: 'e.g. 72',
                     border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.favorite, color: Color(0xFFE53935)),
+                    prefixIcon:
+                    Icon(Icons.favorite, color: Color(0xFFE53935)),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -419,31 +569,147 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
                   decoration: const InputDecoration(
                     hintText: 'e.g. 50',
                     border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.timeline, color: Color(0xFF4F7CFF)),
+                    prefixIcon:
+                    Icon(Icons.timeline, color: Color(0xFF4F7CFF)),
                   ),
                 ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content:
-                                Text('Polar Heartbeat integration coming soon')),
-                      );
-                    },
-                    icon: const Icon(Icons.bluetooth),
-                    label: const Text('Connect to Polar Heartbeat'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF4F7CFF),
-                      side: const BorderSide(color: Color(0xFF4F7CFF)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                const SizedBox(height: 24),
+
+                // --- DYNAMIC PLUX UI & LIVE GRAPH ---
+                if (_isPluxConnected) ...[
+                  // 1. The Live Graph Box
+                  Container(
+                    height: 120,
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E1E2C),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: _graphPpgBuffer.isEmpty && !_recordingDone
+                        ? const Center(child: Text("Press Test Sensor Button To View", style: TextStyle(color: Colors.white54)))
+                        : Stack(
+                      children: [
+                        CustomPaint(
+                          size: Size.infinite,
+                          painter: _LiveGraphPainter(_graphPpgBuffer, Colors.redAccent),
+                        ),
+                        const Positioned(
+                          top: 0, left: 0,
+                          child: Text("PPG", style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
                     ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+
+                  // 2. The Buttons
+                  if (_isRecording)
+                  // RECORDING STATE
+                    SizedBox(
+                      width: double.infinity,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const CircularProgressIndicator(color: Color(0xFF4F7CFF)),
+                          const SizedBox(height: 12),
+                          Text(
+                              "Recording data... Please sit still for ${_recordDuration}s",
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Color(0xFF4F7CFF), fontWeight: FontWeight.bold)
+                          ),
+                          const SizedBox(height: 12),
+                          TextButton.icon(
+                            onPressed: _cancelRecording,
+                            icon: const Icon(Icons.cancel, color: Colors.redAccent),
+                            label: const Text('Cancel Recording', style: TextStyle(color: Colors.redAccent)),
+                          )
+                        ],
+                      ),
+                    )
+                  else if (_recordingDone)
+                  // FINISHED STATE
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: null,
+                          icon: const Icon(Icons.check_circle, color: Colors.green),
+                          label: const Text('Data Recorded Successfully', style: TextStyle(color: Colors.green)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.green),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: _redoRecording,
+                          icon: const Icon(Icons.refresh, color: Color(0xFF4F7CFF)),
+                          label: const Text('Redo Recording', style: TextStyle(color: Color(0xFF4F7CFF))),
+                        )
+                      ],
+                    )
+                  else
+                  // IDLE STATE (Ready to Test or Record)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: _toggleTesting,
+                          icon: Icon(_isTesting ? Icons.stop : Icons.science, color: _isTesting ? Colors.red : const Color(0xFF4F7CFF)),
+                          label: Text(_isTesting ? 'Stop Testing' : 'Test Sensor (Live View)',
+                              style: TextStyle(color: _isTesting ? Colors.red : const Color(0xFF4F7CFF))),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: _isTesting ? Colors.red : const Color(0xFF4F7CFF)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton.icon(
+                          onPressed: _startRecording,
+                          icon: const Icon(Icons.play_arrow),
+                          label: Text('Start ${_recordDuration}s Recording'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4F7CFF),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ],
+                    ), // <--- THIS WAS THE MISSING COMMA!
+                ] else ...[
+                  // CONNECT STATE
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        // 1. Instantly clear any old popups stuck in the queue!
+                        ScaffoldMessenger.of(context).clearSnackBars();
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connecting to PLUX...')));
+
+                        final result = await _pluxService.testConnection();
+                        setState(() { _isPluxConnected = true; });
+
+                        if (mounted) {
+                          // 2. Clear the "Connecting..." popup instantly before showing "Connected!"
+                          ScaffoldMessenger.of(context).clearSnackBars();
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Connected: $result'), backgroundColor: Colors.green));
+                        }
+                      },
+                      icon: const Icon(Icons.bluetooth),
+                      label: const Text('Connect to PLUX HeartBIT'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF4F7CFF),
+                        side: const BorderSide(color: Color(0xFF4F7CFF)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -498,7 +764,7 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
                         style: OutlinedButton.styleFrom(
                           backgroundColor: selected ? colors[i] : Colors.white,
                           foregroundColor:
-                              selected ? Colors.white : Colors.black87,
+                          selected ? Colors.white : Colors.black87,
                           side: BorderSide(
                               color: selected ? colors[i] : Colors.black26),
                           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -638,7 +904,7 @@ class _InfoBanner extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(subtitle,
                     style:
-                        const TextStyle(color: Colors.black54, fontSize: 13)),
+                    const TextStyle(color: Colors.black54, fontSize: 13)),
               ],
             ),
           ),
@@ -686,8 +952,6 @@ class _SectionCard extends StatelessWidget {
     );
   }
 }
-
-
 
 class _RecentEntryTile extends StatelessWidget {
   const _RecentEntryTile({
@@ -747,4 +1011,50 @@ class _RecentEntryTile extends StatelessWidget {
       ],
     );
   }
+}
+
+class _LiveGraphPainter extends CustomPainter {
+  final List<double> data;
+  final Color color;
+
+  _LiveGraphPainter(this.data, this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) return;
+
+    double minVal = data.reduce(math.min);
+    double maxVal = data.reduce(math.max);
+
+    if (maxVal - minVal < 20) {
+      return;
+    }
+
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round;
+
+    final path = Path();
+
+    final double widthStep = size.width / (data.length > 1 ? data.length - 1 : 1);
+
+    for (int i = 0; i < data.length; i++) {
+      final double x = i * widthStep;
+      final double normalizedY = (data[i] - minVal) / (maxVal - minVal);
+      final double y = size.height - (normalizedY * size.height);
+
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
