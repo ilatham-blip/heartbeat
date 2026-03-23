@@ -185,7 +185,7 @@ class _MorningSurveyScreenState extends State<_MorningSurveyScreen> {
   final _pluxService = PluxService();
 
   // --- PLUX STATE VARIABLES ---
-  final int _recordDuration = 20; // Changed back to 20 for production
+  final int _recordDuration = 120; // Changed back to 20 for production
   bool _isPluxConnected = false;
 
   // App Modes
@@ -427,9 +427,6 @@ class _MorningSurveyScreenState extends State<_MorningSurveyScreen> {
   }
 
   void _saveLog() async {
-    final hr = int.tryParse(_hrCtrl.text) ?? 0;
-    final hrv = int.tryParse(_hrvCtrl.text) ?? 0;
-
     final appState = Provider.of<MyAppState>(context, listen: false);
     try {
       await appState.saveMorningCheckIn(
@@ -440,9 +437,8 @@ class _MorningSurveyScreenState extends State<_MorningSurveyScreen> {
         dizzinessStanding: _dizziness,
         tachycardia: _tachycardia,
         notes: _notesCtrl.text.trim(),
-
-        // IMPORTANT: Once you update app_state.dart to accept the list, UNCOMMENT this line!
-        // rawPluxData: _ppgData,
+        ppgData: _ppgData,
+        ecgData: _ecgData,
       );
 
       // Force disconnect BEFORE leaving
@@ -453,7 +449,12 @@ class _MorningSurveyScreenState extends State<_MorningSurveyScreen> {
     } catch (e) {
       await _pluxService.disconnect();
       if (mounted) {
-        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save morning log: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }

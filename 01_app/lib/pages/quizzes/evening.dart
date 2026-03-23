@@ -203,7 +203,7 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
   ];
 
   // --- PLUX STATE VARIABLES ---
-  final int _recordDuration = 5;
+  final int _recordDuration = 120;
   bool _isPluxConnected = false;
 
   // App Modes
@@ -452,7 +452,8 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
         fatigueScore: _fatigueScore ?? 0,
         baselineSymptoms: _selectedSymptoms.toList(),
         notes: _notesCtrl.text.trim(),
-        // rawPluxData: _ppgData,
+        ppgData: _ppgData,
+        ecgData: _ecgData,
       );
 
       await _pluxService.disconnect();

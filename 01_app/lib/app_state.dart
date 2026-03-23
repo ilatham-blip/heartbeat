@@ -200,6 +200,28 @@ class LifestyleDraft {
 class MyAppState extends ChangeNotifier{
   final DatabaseService _databaseService = DatabaseService();
 
+  String _dateOnly(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  String _timeWithSeconds(TimeOfDay time) {
+    final second = DateTime.now().second.toString().padLeft(2, '0');
+    final hh = time.hour.toString().padLeft(2, '0');
+    final mm = time.minute.toString().padLeft(2, '0');
+    return '$hh:$mm:$second';
+  }
+
+  User _requireCurrentUser() {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      throw StateError('No authenticated user session. Please sign in again.');
+    }
+    return user;
+  }
+
   final dizziness = <double>[];
   final nausea = <double>[];
   final users = ["iris", "peter"];
@@ -329,16 +351,14 @@ class MyAppState extends ChangeNotifier{
 
     notifyListeners();
 
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user != null) {
-      await _databaseService.saveEpisode({
-        'user_id': user.id,
-        'date': date.toIso8601String(),
-        'time': '${time.hour}:${time.minute}',
-        'scores': scores,
-        'notes': notes,
-      });
-    }
+    final user = _requireCurrentUser();
+    await _databaseService.saveEpisode({
+      'user_id': user.id,
+      'date': _dateOnly(date),
+      'time': '${time.hour}:${time.minute}',
+      'scores': scores,
+      'notes': notes,
+    });
   }
 
   EpisodeDraft? episodeDraft;
@@ -435,6 +455,8 @@ class MyAppState extends ChangeNotifier{
     required int fatigueScore,
     required List<String> baselineSymptoms,
     required String notes,
+    required List<double> ppgData,
+    required List<double> ecgData,
   }) async {
     final dt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
     eveningEntries.insert(0, EveningEntry(
@@ -455,18 +477,26 @@ class MyAppState extends ChangeNotifier{
 
     notifyListeners();
 
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user != null) {
-      await _databaseService.saveEveningCheckIn({
-        'user_id': user.id,
-        'date': date.toIso8601String(),
-        'heart_rate': heartRateBpm,
-        'hrv': hrvMs,
-        'fatigue_score': fatigueScore,
-        'symptoms': baselineSymptoms,
-        'notes': notes,
-      });
-    }
+    final user = _requireCurrentUser();
+    await _databaseService.saveEveningCheckIn({
+      'user_id': user.id,
+      'date': DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+        DateTime.now().second,
+      ).toIso8601String(),
+      'time': _timeWithSeconds(time),
+      'heart_rate': heartRateBpm,
+      'hrv': hrvMs,
+      'fatigue_score': fatigueScore,
+      'symptoms': baselineSymptoms,
+      'notes': notes,
+      'ppg_data': ppgData,
+      'ecg_data': ecgData,
+    });
   }
 
   void pauseEveningReview(EveningDraft draft) {
@@ -501,6 +531,8 @@ class MyAppState extends ChangeNotifier{
     required Severity dizzinessStanding,
     required Severity tachycardia,
     required String notes,
+    required List<double> ppgData,
+    required List<double> ecgData,
   }) async {
     final dt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
     _morningEntries.insert(
@@ -527,18 +559,19 @@ class MyAppState extends ChangeNotifier{
 
     notifyListeners();
 
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user != null) {
-      await _databaseService.saveMorningCheckIn({
-        'user_id': user.id,
-        'date': date.toIso8601String(),
-        'sleep_quality': sleepQuality.index,
-        'fatigue': fatigue.index,
-        'dizziness': dizzinessStanding.index,
-        'tachycardia': tachycardia.index,
-        'notes': notes,
-      });
-    }
+    final user = _requireCurrentUser();
+    await _databaseService.saveMorningCheckIn({
+      'user_id': user.id,
+      'date': _dateOnly(date),
+      'time': '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
+      'sleep_quality': sleepQuality.index,
+      'fatigue': fatigue.index,
+      'dizziness': dizzinessStanding.index,
+      'tachycardia': tachycardia.index,
+      'notes': notes,
+      'ppg_data': ppgData,
+      'ecg_data': ecgData,
+    });
   }
 
   void pauseMorningCheckIn(MorningDraft draft) {
@@ -600,26 +633,24 @@ class MyAppState extends ChangeNotifier{
       hydration.insert(0, (waterLitres / 5.0) * 10.0 );
       notifyListeners();
 
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user != null) {
-        await _databaseService.saveLifestyleLog({
-          'user_id': user.id,
-          'date': date.toIso8601String(),
-          'hot_place': hotPlace,
-          'refined_carbs': refinedCarbs,
-          'standing_mins': standingMins,
-          'carbs_grams': carbsGrams,
-          'water_litres': waterLitres,
-          'alcohol_units': alcoholUnits,
-          'rest_too_much': restTooMuch,
-          'ex_mild': exMildMins,
-          'ex_moderate': exModerateMins,
-          'ex_intense': exIntenseMins,
-          'on_period': onPeriod,
-          'stress_level': stressLevel,
-          'notes': notes,
-        });
-      }
+      final user = _requireCurrentUser();
+      await _databaseService.saveLifestyleLog({
+        'user_id': user.id,
+        'date': _dateOnly(date),
+        'hot_place': hotPlace,
+        'refined_carbs': refinedCarbs,
+        'standing_mins': standingMins,
+        'carbs_grams': carbsGrams,
+        'water_litres': waterLitres,
+        'alcohol_units': alcoholUnits,
+        'rest_too_much': restTooMuch,
+        'ex_mild': exMildMins,
+        'ex_moderate': exModerateMins,
+        'ex_intense': exIntenseMins,
+        'on_period': onPeriod,
+        'stress_level': stressLevel,
+        'notes': notes,
+      });
     }
 }
  

@@ -423,12 +423,18 @@ class _ExportDataPageState extends State<ExportDataPage> {
       }
 
       if (dataType == 'all' || dataType == 'checkins') {
-        final checkins = await Supabase.instance.client
-            .from('daily_checkins')
+        final morningCheckins = await Supabase.instance.client
+            .from('morning_checkins')
             .select()
             .eq('user_id', user.id)
             .order('date', ascending: false);
-        exportData['daily_checkins'] = checkins;
+        final eveningCheckins = await Supabase.instance.client
+            .from('evening_checkins')
+            .select()
+            .eq('user_id', user.id)
+            .order('date', ascending: false);
+        exportData['morning_checkins'] = morningCheckins;
+        exportData['evening_checkins'] = eveningCheckins;
       }
 
       if (dataType == 'all' || dataType == 'lifestyle') {
@@ -442,11 +448,11 @@ class _ExportDataPageState extends State<ExportDataPage> {
 
       if (dataType == 'all' || dataType == 'episodes') {
         final episodes = await Supabase.instance.client
-            .from('pots_episodes')
+            .from('episodes')
             .select()
             .eq('user_id', user.id)
-            .order('recorded_at', ascending: false);
-        exportData['pots_episodes'] = episodes;
+            .order('date', ascending: false);
+        exportData['episodes'] = episodes;
       }
 
 
