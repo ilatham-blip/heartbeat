@@ -28,10 +28,9 @@ def show_data_dashboard(supabase):
             # We could fetch checkins here too if needed, but might be large
             # generic fetch logic above might be slow for full dump if table grows, but ok for now.
 
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
         col1.metric("Total Users", len(users_df))
-        col2.metric("Active Studies", len(studies_df))
-        col3.metric("Total Episodes", len(episodes_df))
+        col2.metric("Total Episodes", len(episodes_df))
         
         # Calculate gender distribution
         if not users_df.empty and 'gender' in users_df.columns:
