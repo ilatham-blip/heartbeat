@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.heartbeat"
-        minSdk = 24
+        minSdk = 28
         targetSdk = 36 // Updated for your newer plugins
         versionCode = 1
         versionName = "1.0"
@@ -29,5 +29,5 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-    implementation("info.plux.api:api:1.5.2")
+    implementation("info.plux.api:api:1.6.6")
 }

@@ -137,7 +137,7 @@ class _EveningQuizState extends State<EveningQuiz> {
                     '${e.dateTime.hour.toString().padLeft(2, '0')}:${e.dateTime.minute.toString().padLeft(2, '0')}',
                     heartRate: '${e.heartRateBpm} bpm',
                     hrv: '${e.hrvMs} ms',
-                    fatigue: _fatigueLabelFromScore(e.fatigueScore),
+                    abnormalTiredness: _labelFromSeverity(e.abnormalTiredness),
                   ),
                 ))
                     .toList(),
@@ -156,13 +156,12 @@ class _EveningQuizState extends State<EveningQuiz> {
     return '$h:$m $suffix';
   }
 
-  static String _fatigueLabelFromScore(int v) {
-    switch (v) {
-      case 0: return 'None';
-      case 1: return 'Slight';
-      case 2: return 'Moderate';
-      case 3: return 'Severe';
-      default: return 'Unknown';
+  static String _labelFromSeverity(Severity s) {
+    switch (s) {
+      case Severity.none: return 'None';
+      case Severity.slight: return 'Slight';
+      case Severity.moderate: return 'Moderate';
+      case Severity.severe: return 'Severe';
     }
   }
 }
@@ -179,28 +178,29 @@ class _EveningSurveyScreen extends StatefulWidget {
 
 class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
   int _currentPage = 0;
-  static const int _totalPages = 4;
+  static const int _totalPages = 13;
 
   DateTime _date = DateTime.now();
   TimeOfDay _time = TimeOfDay.now();
   final TextEditingController _hrCtrl = TextEditingController();
   final TextEditingController _hrvCtrl = TextEditingController();
-  int? _fatigueScore;
-  final Set<String> _selectedSymptoms = {};
+
+  // MAPS scores
+  Severity _dizziness = Severity.none;
+  Severity _palpitations = Severity.none;
+  Severity _dyspnoea = Severity.none;
+  Severity _chestPain = Severity.none;
+  Severity _headache = Severity.none;
+  Severity _concentration = Severity.none;
+  Severity _musclePain = Severity.none;
+  Severity _nausea = Severity.none;
+  Severity _giProblems = Severity.none;
+  Severity _abnormalTiredness = Severity.none;
+  Severity _insomnia = Severity.none;
+
   final TextEditingController _notesCtrl = TextEditingController();
   final PageController _pageCtrl = PageController();
   final _pluxService = PluxService();
-
-  final List<String> _symptomOptions = const [
-    'Muscle pain',
-    'Nausea',
-    'Gastrointestinal problems (stomach-ache, diarrhoea, constipation)',
-    'Difficulties in concentration',
-    'Difficult breathing/dyspnoea, both at effort and rest',
-    'Temperature Changes (feeling abnormally hot or cold)',
-    'Dizziness, feeling that you are going to faint after being upright',
-    'Palpitations, high pulse, or feeling heart beating irregularly',
-  ];
 
   // --- PLUX STATE VARIABLES ---
   final int _recordDuration = 120;
@@ -237,9 +237,17 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
           _time = draft.time;
           _hrCtrl.text = draft.heartRateBpm?.toString() ?? '';
           _hrvCtrl.text = draft.hrvMs?.toString() ?? '';
-          _fatigueScore = draft.fatigueScore;
-          _selectedSymptoms.clear();
-          _selectedSymptoms.addAll(draft.selectedSymptoms);
+          _dizziness = draft.dizziness;
+          _palpitations = draft.palpitations;
+          _dyspnoea = draft.dyspnoea;
+          _chestPain = draft.chestPain;
+          _headache = draft.headache;
+          _concentration = draft.concentration;
+          _musclePain = draft.musclePain;
+          _nausea = draft.nausea;
+          _giProblems = draft.giProblems;
+          _abnormalTiredness = draft.abnormalTiredness;
+          _insomnia = draft.insomnia;
           _notesCtrl.text = draft.notes;
         });
         if (_pageCtrl.hasClients) {
@@ -384,8 +392,17 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
     time: _time,
     heartRateBpm: int.tryParse(_hrCtrl.text),
     hrvMs: int.tryParse(_hrvCtrl.text),
-    fatigueScore: _fatigueScore,
-    selectedSymptoms: Set.of(_selectedSymptoms),
+    dizziness: _dizziness,
+    palpitations: _palpitations,
+    dyspnoea: _dyspnoea,
+    chestPain: _chestPain,
+    headache: _headache,
+    concentration: _concentration,
+    musclePain: _musclePain,
+    nausea: _nausea,
+    giProblems: _giProblems,
+    abnormalTiredness: _abnormalTiredness,
+    insomnia: _insomnia,
     notes: _notesCtrl.text,
   );
 
@@ -449,8 +466,17 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
         time: _time,
         heartRateBpm: hr,
         hrvMs: hrv,
-        fatigueScore: _fatigueScore ?? 0,
-        baselineSymptoms: _selectedSymptoms.toList(),
+        dizziness: _dizziness,
+        palpitations: _palpitations,
+        dyspnoea: _dyspnoea,
+        chestPain: _chestPain,
+        headache: _headache,
+        concentration: _concentration,
+        musclePain: _musclePain,
+        nausea: _nausea,
+        giProblems: _giProblems,
+        abnormalTiredness: _abnormalTiredness,
+        insomnia: _insomnia,
         notes: _notesCtrl.text.trim(),
         ppgData: _ppgData,
         ecgData: _ecgData,
@@ -513,8 +539,17 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
                 onPageChanged: (i) => setState(() => _currentPage = i),
                 children: [
                   _buildHRVPage(),
-                  _buildFatiguePage(),
-                  _buildSymptomsPage(),
+                  _buildDizzinessPage(),
+                  _buildPalpitationsPage(),
+                  _buildDyspnoeaPage(),
+                  _buildChestPainPage(),
+                  _buildHeadachePage(),
+                  _buildConcentrationPage(),
+                  _buildMusclePainPage(),
+                  _buildNauseaPage(),
+                  _buildGiProblemsPage(),
+                  _buildAbnormalTirednessPage(),
+                  _buildInsomniaPage(),
                   _buildNotesPage(),
                 ],
               ),
@@ -723,110 +758,158 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
 
   // ── Page 2: Fatigue ────────────────────────────────────────
 
-  Widget _buildFatiguePage() {
-    const labels = ['None', 'Slight', 'Moderate', 'Severe'];
-    const icons = [
-      Icons.sentiment_very_satisfied,
-      Icons.sentiment_satisfied,
-      Icons.sentiment_dissatisfied,
-      Icons.sentiment_very_dissatisfied,
-    ];
-    const colors = [
-      Color(0xFF43A047),
-      Color(0xFFFBC02D),
-      Color(0xFFFB8C00),
-      Color(0xFFE53935),
-    ];
+  // ── Page 2: Dizziness ──────────────────────────────────
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          _SectionCard(
-            title: 'Abnormal Fatigue',
-            leadingIcon: Icons.battery_alert,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('How would you rate your abnormal fatigue today?',
-                    style: TextStyle(fontSize: 15)),
-                const SizedBox(height: 16),
-                ...List.generate(4, (i) {
-                  final selected = _fatigueScore == i;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () => setState(() => _fatigueScore = i),
-                        icon: Icon(icons[i],
-                            color: selected ? Colors.white : colors[i]),
-                        label: Text(labels[i]),
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: selected ? colors[i] : Colors.white,
-                          foregroundColor:
-                          selected ? Colors.white : Colors.black87,
-                          side: BorderSide(
-                              color: selected ? colors[i] : Colors.black26),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          textStyle: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          QuizNextButton(onPressed: _nextPage),
-        ],
-      ),
+  Widget _buildDizzinessPage() {
+    return _buildSeverityPage(
+      title: 'Dizziness',
+      subtitle: 'Dizziness in upright position or while standing up / feeling that you are going to faint',
+      icon: Icons.swap_vert_outlined,
+      value: _dizziness,
+      onChanged: (v) => setState(() => _dizziness = v),
     );
   }
 
-  // ── Page 3: Symptoms ───────────────────────────────────────
+  // ── Page 3: Palpitations ────────────────────────────────
 
-  Widget _buildSymptomsPage() {
+  Widget _buildPalpitationsPage() {
+    return _buildSeverityPage(
+      title: 'Palpitations',
+      subtitle: 'Palpitations, high pulse, or feeling heart beating irregularly',
+      icon: Icons.favorite_outline,
+      value: _palpitations,
+      onChanged: (v) => setState(() => _palpitations = v),
+    );
+  }
+
+  // ── Page 4: Dyspnoea ───────────────────────────────────
+
+  Widget _buildDyspnoeaPage() {
+    return _buildSeverityPage(
+      title: 'Difficulty Breathing',
+      subtitle: 'Difficult breathing / dyspnoea, both at effort and rest',
+      icon: Icons.air_outlined,
+      value: _dyspnoea,
+      onChanged: (v) => setState(() => _dyspnoea = v),
+    );
+  }
+
+  // ── Page 5: Chest Pain ─────────────────────────────────
+
+  Widget _buildChestPainPage() {
+    return _buildSeverityPage(
+      title: 'Chest Pain',
+      subtitle: 'Chest pain or tightness',
+      icon: Icons.monitor_heart_outlined,
+      value: _chestPain,
+      onChanged: (v) => setState(() => _chestPain = v),
+    );
+  }
+
+  // ── Page 6: Headache ──────────────────────────────────
+
+  Widget _buildHeadachePage() {
+    return _buildSeverityPage(
+      title: 'Headache',
+      subtitle: 'Headache or pressure in the head',
+      icon: Icons.psychology_outlined,
+      value: _headache,
+      onChanged: (v) => setState(() => _headache = v),
+    );
+  }
+
+  // ── Page 7: Concentration ─────────────────────────────
+
+  Widget _buildConcentrationPage() {
+    return _buildSeverityPage(
+      title: 'Concentration Difficulties',
+      subtitle: 'Concentration difficulties and/or problems with thinking',
+      icon: Icons.lightbulb_outline,
+      value: _concentration,
+      onChanged: (v) => setState(() => _concentration = v),
+    );
+  }
+
+  // ── Page 8: Muscle Pain ──────────────────────────────
+
+  Widget _buildMusclePainPage() {
+    return _buildSeverityPage(
+      title: 'Muscle Pain',
+      subtitle: 'Muscle pain or aches',
+      icon: Icons.fitness_center_outlined,
+      value: _musclePain,
+      onChanged: (v) => setState(() => _musclePain = v),
+    );
+  }
+
+  // ── Page 9: Nausea ───────────────────────────────────
+
+  Widget _buildNauseaPage() {
+    return _buildSeverityPage(
+      title: 'Nausea',
+      subtitle: 'Nausea or feeling sick',
+      icon: Icons.sick_outlined,
+      value: _nausea,
+      onChanged: (v) => setState(() => _nausea = v),
+    );
+  }
+
+  // ── Page 10: GI Problems ──────────────────────────────
+
+  Widget _buildGiProblemsPage() {
+    return _buildSeverityPage(
+      title: 'Gastrointestinal Problems',
+      subtitle: 'Stomach-ache, diarrhoea, constipation',
+      icon: Icons.restaurant_outlined,
+      value: _giProblems,
+      onChanged: (v) => setState(() => _giProblems = v),
+    );
+  }
+
+  // ── Page 11: Abnormal Tiredness ────────────────────────────
+
+  Widget _buildAbnormalTirednessPage() {
+    return _buildSeverityPage(
+      title: 'Abnormal Tiredness',
+      subtitle: 'Abnormal tiredness that persists after rest',
+      icon: Icons.battery_alert_outlined,
+      value: _abnormalTiredness,
+      onChanged: (v) => setState(() => _abnormalTiredness = v),
+    );
+  }
+
+  // ── Page 12: Insomnia ────────────────────────────────────
+
+  Widget _buildInsomniaPage() {
+    return _buildSeverityPage(
+      title: 'Insomnia',
+      subtitle: 'Difficulty falling or staying asleep',
+      icon: Icons.bedtime_outlined,
+      value: _insomnia,
+      onChanged: (v) => setState(() => _insomnia = v),
+    );
+  }
+
+  // ── Shared severity page builder ───────────────────────────
+
+  Widget _buildSeverityPage({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Severity value,
+    required ValueChanged<Severity> onChanged,
+  }) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           _SectionCard(
-            title: 'Baseline Symptoms',
-            leadingIcon: Icons.checklist,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Select any symptoms you experienced today:',
-                    style: TextStyle(fontSize: 15)),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _symptomOptions.map((label) {
-                    final selected = _selectedSymptoms.contains(label);
-                    return FilterChip(
-                      label: Text(label),
-                      selected: selected,
-                      selectedColor: const Color(0xFFD6E4FF),
-                      checkmarkColor: const Color(0xFF4F7CFF),
-                      onSelected: (isSel) {
-                        setState(() {
-                          if (isSel) {
-                            _selectedSymptoms.add(label);
-                          } else {
-                            _selectedSymptoms.remove(label);
-                          }
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
-              ],
+            title: title,
+            subtitle: subtitle,
+            leadingIcon: icon,
+            child: _SeveritySelector(
+              value: value,
+              onChanged: onChanged,
             ),
           ),
           const SizedBox(height: 16),
@@ -915,11 +998,52 @@ class _InfoBanner extends StatelessWidget {
   }
 }
 
+class _SeveritySelector extends StatelessWidget {
+  const _SeveritySelector({required this.value, required this.onChanged});
+
+  final Severity value;
+  final ValueChanged<Severity> onChanged;
+
+  static const _labels = ['None', 'Slight', 'Moderate', 'Severe'];
+  static const _values = [
+    Severity.none,
+    Severity.slight,
+    Severity.moderate,
+    Severity.severe,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: List.generate(4, (i) {
+        final selected = value == _values[i];
+        return ChoiceChip(
+          label: Text(_labels[i]),
+          selected: selected,
+          pressElevation: 0,
+          onSelected: (_) => onChanged(_values[i]),
+          selectedColor: const Color(0xFF4F7CFF),
+          labelStyle: TextStyle(
+            color: selected ? Colors.white : Colors.black87,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        );
+      }),
+    );
+  }
+}
+
 class _SectionCard extends StatelessWidget {
   const _SectionCard(
-      {required this.title, required this.child, required this.leadingIcon});
+      {required this.title,
+        required this.child,
+        required this.leadingIcon,
+        this.subtitle});
 
   final String title;
+  final String? subtitle;
   final Widget child;
   final IconData leadingIcon;
 
@@ -937,12 +1061,26 @@ class _SectionCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(leadingIcon, color: const Color(0xFF4F7CFF)),
                 const SizedBox(width: 8),
-                Text(title,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w700)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w700)),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 4),
+                        Text(subtitle!,
+                            style: const TextStyle(
+                                fontSize: 13, color: Colors.black54)),
+                      ],
+                    ],
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -960,14 +1098,14 @@ class _RecentEntryTile extends StatelessWidget {
     required this.timeLabel,
     required this.heartRate,
     required this.hrv,
-    required this.fatigue,
+    required this.abnormalTiredness,
   });
 
   final String dateLabel;
   final String timeLabel;
   final String heartRate;
   final String hrv;
-  final String fatigue;
+  final String abnormalTiredness;
 
   @override
   Widget build(BuildContext context) {
@@ -994,7 +1132,7 @@ class _RecentEntryTile extends StatelessWidget {
             const SizedBox(height: 8),
             _kv('Heart Rate', heartRate),
             _kv('HRV', hrv),
-            _kv('Fatigue', fatigue),
+            _kv('Tiredness', abnormalTiredness),
           ],
         ),
       ),

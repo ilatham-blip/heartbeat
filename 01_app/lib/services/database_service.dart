@@ -140,10 +140,10 @@ class DatabaseService {
 
   bool _isMissingUserProfileForeignKey(PostgrestException e) {
     final code = e.code ?? '';
-    final message = e.message.toLowerCase();
+    final combinedMessage = '${e.message} ${e.details}'.toLowerCase();
     return code == '23503' &&
-        message.contains('foreign key') &&
-        message.contains('user_profiles');
+        combinedMessage.contains('foreign key') &&
+        combinedMessage.contains('user_profiles');
   }
 
   bool _isDuplicateKeyError(PostgrestException e) {

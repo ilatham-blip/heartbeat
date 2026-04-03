@@ -71,15 +71,12 @@ class _UserLoginPageState extends State<UserLoginPage> {
 
   // Helper to handle navigation after login
   void _onLoginSuccess() {
-    // I noticed you used appState.changeIndex(0) in your old code.
-    // If you are using an IndexedStack to switch pages, use this:
     final appState = Provider.of<MyAppState>(context, listen: false);
     appState.changeIndex(0);
 
-    // OR if you use standard navigation, uncomment this:
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => AppLayout()),
-    );
+    // Pop everything to return to AuthGate, which will automatically direct the user
+    // to CreateProfilePage or AppLayout according to their user_profiles DB state.
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override

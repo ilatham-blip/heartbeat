@@ -497,18 +497,6 @@ class _VerticalSeveritySelector extends StatelessWidget {
     Severity.moderate,
     Severity.severe,
   ];
-  static const _icons = [
-    Icons.sentiment_very_satisfied,
-    Icons.sentiment_satisfied,
-    Icons.sentiment_dissatisfied,
-    Icons.sentiment_very_dissatisfied,
-  ];
-  static const _colors = [
-    Color(0xFF43A047),
-    Color(0xFFFBC02D),
-    Color(0xFFFB8C00),
-    Color(0xFFE53935),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -519,22 +507,20 @@ class _VerticalSeveritySelector extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 10),
           child: SizedBox(
             width: double.infinity,
-            child: OutlinedButton.icon(
+            child: OutlinedButton(
               onPressed: () => onChanged(_values[i]),
-              icon: Icon(_icons[i],
-                  color: selected ? Colors.white : _colors[i]),
-              label: Text(_labels[i]),
               style: OutlinedButton.styleFrom(
-                backgroundColor: selected ? _colors[i] : Colors.white,
+                backgroundColor: selected ? const Color(0xFFCC2B2B) : Colors.white,
                 foregroundColor: selected ? Colors.white : Colors.black87,
                 side: BorderSide(
-                    color: selected ? _colors[i] : Colors.black26),
+                    color: selected ? const Color(0xFFCC2B2B) : Colors.black26),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
                 textStyle: const TextStyle(
                     fontSize: 16, fontWeight: FontWeight.w600),
               ),
+              child: Text(_labels[i]),
             ),
           ),
         );

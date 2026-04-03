@@ -12,16 +12,35 @@ class EveningEntry {
     required this.dateTime,
     required this.heartRateBpm,
     required this.hrvMs,
-    required this.fatigueScore,
-    required this.baselineSymptoms,
+    required this.dizziness,
+    required this.palpitations,
+    required this.dyspnoea,
+    required this.chestPain,
+    required this.headache,
+    required this.concentration,
+    required this.musclePain,
+    required this.nausea,
+    required this.giProblems,
+    required this.abnormalTiredness,
+    required this.insomnia,
     required this.notes,
   });
 
   final DateTime dateTime;
   final int heartRateBpm;
   final int hrvMs;
-  final int fatigueScore; // 0=None,1=Slight,2=Moderate,3=Severe
-  final List<String> baselineSymptoms;
+  // MAPS scores (0=None, 1=Slight, 2=Moderate, 3=Severe)
+  final Severity dizziness;
+  final Severity palpitations;
+  final Severity dyspnoea;
+  final Severity chestPain;
+  final Severity headache;
+  final Severity concentration;
+  final Severity musclePain;
+  final Severity nausea;
+  final Severity giProblems;
+  final Severity abnormalTiredness;
+  final Severity insomnia;
   final String notes;
 }
 
@@ -32,8 +51,17 @@ class EveningDraft {
   TimeOfDay time;
   int? heartRateBpm;
   int? hrvMs;
-  int? fatigueScore;   // 0=None,1=Slight,2=Moderate,3=Severe
-  Set<String> selectedSymptoms;
+  Severity dizziness;
+  Severity palpitations;
+  Severity dyspnoea;
+  Severity chestPain;
+  Severity headache;
+  Severity concentration;
+  Severity musclePain;
+  Severity nausea;
+  Severity giProblems;
+  Severity abnormalTiredness;
+  Severity insomnia;
   String notes;
 
   EveningDraft({
@@ -42,28 +70,51 @@ class EveningDraft {
     TimeOfDay? time,
     this.heartRateBpm,
     this.hrvMs,
-    this.fatigueScore,
-    Set<String>? selectedSymptoms,
+    this.dizziness = Severity.none,
+    this.palpitations = Severity.none,
+    this.dyspnoea = Severity.none,
+    this.chestPain = Severity.none,
+    this.headache = Severity.none,
+    this.concentration = Severity.none,
+    this.musclePain = Severity.none,
+    this.nausea = Severity.none,
+    this.giProblems = Severity.none,
+    this.abnormalTiredness = Severity.none,
+    this.insomnia = Severity.none,
     this.notes = '',
   })  : date = date ?? DateTime.now(),
-        time = time ?? TimeOfDay.now(),
-        selectedSymptoms = selectedSymptoms ?? {};
+        time = time ?? TimeOfDay.now();
 }
 class MorningEntry {
   MorningEntry({
     required this.dateTime,
-    required this.sleepQuality,
-    required this.fatigue,
-    required this.dizzinessStanding,
-    required this.tachycardia,
+    required this.insomnia,
+    required this.abnormalTiredness,
+    required this.dizziness,
+    required this.palpitations,
+    required this.dyspnoea,
+    required this.chestPain,
+    required this.headache,
+    required this.concentration,
+    required this.musclePain,
+    required this.nausea,
+    required this.giProblems,
     required this.notes,
   });
 
   final DateTime dateTime;
-  final SleepQuality sleepQuality;
-  final Severity fatigue;
-  final Severity dizzinessStanding;
-  final Severity tachycardia;
+  // MAPS scores (0=None, 1=Slight, 2=Moderate, 3=Severe)
+  final Severity insomnia;
+  final Severity abnormalTiredness;
+  final Severity dizziness;
+  final Severity palpitations;
+  final Severity dyspnoea;
+  final Severity chestPain;
+  final Severity headache;
+  final Severity concentration;
+  final Severity musclePain;
+  final Severity nausea;
+  final Severity giProblems;
   final String notes;
 }
 
@@ -120,10 +171,17 @@ class MorningDraft {
   TimeOfDay time;
   int? heartRateBpm;
   int? hrvMs;
-  SleepQuality sleep;
-  Severity fatigue;
+  Severity insomnia;
+  Severity abnormalTiredness;
   Severity dizziness;
-  Severity tachycardia;
+  Severity palpitations;
+  Severity dyspnoea;
+  Severity chestPain;
+  Severity headache;
+  Severity concentration;
+  Severity musclePain;
+  Severity nausea;
+  Severity giProblems;
   String notes;
 
   MorningDraft({
@@ -132,10 +190,17 @@ class MorningDraft {
     TimeOfDay? time,
     this.heartRateBpm,
     this.hrvMs,
-    this.sleep = SleepQuality.fair,
-    this.fatigue = Severity.none,
+    this.insomnia = Severity.none,
+    this.abnormalTiredness = Severity.none,
     this.dizziness = Severity.none,
-    this.tachycardia = Severity.none,
+    this.palpitations = Severity.none,
+    this.dyspnoea = Severity.none,
+    this.chestPain = Severity.none,
+    this.headache = Severity.none,
+    this.concentration = Severity.none,
+    this.musclePain = Severity.none,
+    this.nausea = Severity.none,
+    this.giProblems = Severity.none,
     this.notes = '',
   })  : date = date ?? DateTime.now(),
         time = time ?? TimeOfDay.now();
@@ -452,8 +517,17 @@ class MyAppState extends ChangeNotifier{
     required TimeOfDay time,
     required int heartRateBpm,
     required int hrvMs,
-    required int fatigueScore,
-    required List<String> baselineSymptoms,
+    required Severity dizziness,
+    required Severity palpitations,
+    required Severity dyspnoea,
+    required Severity chestPain,
+    required Severity headache,
+    required Severity concentration,
+    required Severity musclePain,
+    required Severity nausea,
+    required Severity giProblems,
+    required Severity abnormalTiredness,
+    required Severity insomnia,
     required String notes,
     required List<double> ppgData,
     required List<double> ecgData,
@@ -463,16 +537,25 @@ class MyAppState extends ChangeNotifier{
       dateTime: dt,
       heartRateBpm: heartRateBpm,
       hrvMs: hrvMs,
-      fatigueScore: fatigueScore,
-      baselineSymptoms: baselineSymptoms,
+      dizziness: dizziness,
+      palpitations: palpitations,
+      dyspnoea: dyspnoea,
+      chestPain: chestPain,
+      headache: headache,
+      concentration: concentration,
+      musclePain: musclePain,
+      nausea: nausea,
+      giProblems: giProblems,
+      abnormalTiredness: abnormalTiredness,
+      insomnia: insomnia,
       notes: notes,
     ));
     eveningDraft = null;
-    // Map the evening fatigue score (0-3) to a 0-10 scale and update
-    // the episode summary so tracker widgets reflect this input.
     try {
-      final scaledFatigue = (fatigueScore / 3.0) * 10.0;
-      updateEpisodeScore('Difficulty concentrating', scaledFatigue);
+      final scaledTiredness = (abnormalTiredness.index / 3.0) * 10.0;
+      updateEpisodeScore('Difficulty concentrating', scaledTiredness);
+      final scaledDizziness = (dizziness.index / 3.0) * 10.0;
+      updateEpisodeScore('Dizziness when standing', scaledDizziness);
     } catch (_) {}
 
     notifyListeners();
@@ -491,8 +574,17 @@ class MyAppState extends ChangeNotifier{
       'time': _timeWithSeconds(time),
       'heart_rate': heartRateBpm,
       'hrv': hrvMs,
-      'fatigue_score': fatigueScore,
-      'symptoms': baselineSymptoms,
+      'dizziness': dizziness.index,
+      'palpitations': palpitations.index,
+      'dyspnoea': dyspnoea.index,
+      'chest_pain': chestPain.index,
+      'headache': headache.index,
+      'concentration': concentration.index,
+      'muscle_pain': musclePain.index,
+      'nausea': nausea.index,
+      'gi_problems': giProblems.index,
+      'abnormal_tiredness': abnormalTiredness.index,
+      'insomnia': insomnia.index,
       'notes': notes,
       'ppg_data': ppgData,
       'ecg_data': ecgData,
@@ -526,10 +618,17 @@ class MyAppState extends ChangeNotifier{
   Future<void> saveMorningCheckIn({
     required DateTime date,
     required TimeOfDay time,
-    required SleepQuality sleepQuality,
-    required Severity fatigue,
-    required Severity dizzinessStanding,
-    required Severity tachycardia,
+    required Severity insomnia,
+    required Severity abnormalTiredness,
+    required Severity dizziness,
+    required Severity palpitations,
+    required Severity dyspnoea,
+    required Severity chestPain,
+    required Severity headache,
+    required Severity concentration,
+    required Severity musclePain,
+    required Severity nausea,
+    required Severity giProblems,
     required String notes,
     required List<double> ppgData,
     required List<double> ecgData,
@@ -539,22 +638,27 @@ class MyAppState extends ChangeNotifier{
       0,
       MorningEntry(
         dateTime: dt,
-        sleepQuality: sleepQuality,
-        fatigue: fatigue,
-        dizzinessStanding: dizzinessStanding,
-        tachycardia: tachycardia,
+        insomnia: insomnia,
+        abnormalTiredness: abnormalTiredness,
+        dizziness: dizziness,
+        palpitations: palpitations,
+        dyspnoea: dyspnoea,
+        chestPain: chestPain,
+        headache: headache,
+        concentration: concentration,
+        musclePain: musclePain,
+        nausea: nausea,
+        giProblems: giProblems,
         notes: notes,
       ),
     );
     morningDraft = null;
-    // Convert severity (0..3) into a 0..10 scale for the tracker and
-    // update episode summary values and trend lists.
     try {
-      final fatigueVal = (fatigue.index / 3.0) * 10.0;
-      final dizzinessVal = (dizzinessStanding.index / 3.0) * 10.0;
-      updateEpisodeScore('Difficulty concentrating', fatigueVal);
+      final tirednessVal = (abnormalTiredness.index / 3.0) * 10.0;
+      final dizzinessVal = (dizziness.index / 3.0) * 10.0;
+      updateEpisodeScore('Difficulty concentrating', tirednessVal);
       updateEpisodeScore('Dizziness when standing', dizzinessVal);
-      dizziness.add(dizzinessVal);
+      this.dizziness.add(dizzinessVal);
     } catch (_) {}
 
     notifyListeners();
@@ -564,10 +668,17 @@ class MyAppState extends ChangeNotifier{
       'user_id': user.id,
       'date': _dateOnly(date),
       'time': '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
-      'sleep_quality': sleepQuality.index,
-      'fatigue': fatigue.index,
-      'dizziness': dizzinessStanding.index,
-      'tachycardia': tachycardia.index,
+      'insomnia': insomnia.index,
+      'abnormal_tiredness': abnormalTiredness.index,
+      'dizziness': dizziness.index,
+      'palpitations': palpitations.index,
+      'dyspnoea': dyspnoea.index,
+      'chest_pain': chestPain.index,
+      'headache': headache.index,
+      'concentration': concentration.index,
+      'muscle_pain': musclePain.index,
+      'nausea': nausea.index,
+      'gi_problems': giProblems.index,
       'notes': notes,
       'ppg_data': ppgData,
       'ecg_data': ecgData,
