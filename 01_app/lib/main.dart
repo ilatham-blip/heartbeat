@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'package:heartbeat/app_state.dart';
 import 'package:heartbeat/services/notification_service.dart';
+import 'package:heartbeat/services/secure_storage_service.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'pages/app_layout.dart';
@@ -18,6 +19,9 @@ void main() async {
   await Supabase.initialize(
     url: SupabaseKeys.url,
     anonKey: SupabaseKeys.anonKey,
+    authOptions: FlutterAuthClientOptions(
+      localStorage: SecureLocalStorage(),
+    ),
   );
 
   // Initialize notification service
