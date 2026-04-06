@@ -344,6 +344,7 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
 
     print('RECORDING FINISHED! Saved ${_ppgData.length} data points.');
     print('PPG (A1): $_ppgData');
+    print(_ppgData.runtimeType);
     print('ECG (A2): $_ecgData');
 
     setState(() {
