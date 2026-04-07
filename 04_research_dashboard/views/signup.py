@@ -12,7 +12,7 @@ def show_signup(supabase):
         <div style="text-align:center; margin-bottom:1.5rem;">
             <span class="auth-logo-icon"></span>
             <h2 class="auth-title">Create your account</h2>
-            <p class="auth-subtitle">Join the Heartbeat research platform</p>
+            <p class="auth-subtitle">Join the POTSync research platform</p>
         </div>
         """, unsafe_allow_html=True)
 

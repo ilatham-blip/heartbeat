@@ -5,7 +5,7 @@ from packages.supabase_client import fetch_table_data
 from datetime import datetime, timedelta
 
 def show_home(supabase):
-    st.title("Welcome to Heartbeat Research")
+    st.title("Welcome to POTSync Research")
     
     # 1. Fetch Data
     with st.spinner("Loading metrics..."):

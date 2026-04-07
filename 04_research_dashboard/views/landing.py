@@ -6,10 +6,10 @@ from views.auth_styles import AUTH_CSS
 # ── Mock data for dev bypass ─────────────────────────────────────────────────
 _DEV_RESEARCHER = SimpleNamespace(
     id="dev-0000-0000-0000-000000000000",
-    email="dev@heartbeat.dev",
+    email="dev@potsync.dev",
     user_metadata={
         "full_name": "Developer",
-        "institution": "Heartbeat Dev Team",
+        "institution": "POTSync Dev Team",
     },
 )
 
@@ -22,8 +22,8 @@ _DEV_STUDY = {
     "researcher_id": "dev-0000-0000-0000-000000000000",
     "created_at": "2025-01-01T00:00:00",
     "principal_investigators": "Dr. Jane Smith, Dr. John Doe",
-    "affiliated_organization": "Heartbeat University Medical Center",
-    "contact_email": "research@heartbeat.dev",
+    "affiliated_organization": "POTSync University Medical Center",
+    "contact_email": "research@potsync.dev",
     "ethics_approval_id": "IRB-2025-001",
     "start_date": "2025-01-01",
     "end_date": "2025-12-31",
@@ -123,7 +123,7 @@ def show_landing():
         st.markdown("""
         <div class="landing-card">
             <span class="brand-icon"></span>
-            <h1 class="brand-name">Heartbeat</h1>
+            <h1 class="brand-name">POTSync</h1>
             <p class="brand-tagline">Researcher Portal &middot; Cardiac Research Platform</p>
         </div>
         """, unsafe_allow_html=True)
@@ -156,5 +156,5 @@ def show_landing():
                 st.session_state.auth_page = "login"
                 st.rerun()
 
-        st.markdown('<p class="footer-note">Heartbeat · Secure Research Access</p>',
+        st.markdown('<p class="footer-note">POTSync · Secure Research Access</p>',
                     unsafe_allow_html=True)

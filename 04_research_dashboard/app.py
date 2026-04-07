@@ -16,7 +16,7 @@ import views.create_study as create_study
 
 # ── Page Config ─────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Heartbeat Research Dashboard",
+    page_title="POTSync Research Dashboard",
     layout="wide",
     page_icon=""
 )
@@ -213,7 +213,7 @@ if "page_selection" not in st.session_state:
 
 with st.sidebar:
     st.image("https://emojicdn.elk.sh/", width=44)
-    st.title("Heartbeat")
+    st.title("POTSync")
 
     st.markdown("---")
 
