@@ -10,7 +10,7 @@ def show_signup(supabase):
     with col:
         st.markdown("""
         <div style="text-align:center; margin-bottom:1.5rem;">
-            <span class="auth-logo-icon">❤️</span>
+            <span class="auth-logo-icon"></span>
             <h2 class="auth-title">Create your account</h2>
             <p class="auth-subtitle">Join the Heartbeat research platform</p>
         </div>

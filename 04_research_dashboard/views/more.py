@@ -34,12 +34,12 @@ def show_more(supabase):
             with col_badge:
                 status = study.get("status", "recruiting")
                 badge_colours = {
-                    "recruiting": ("🟢", "#166534", "#DCFCE7"),
-                    "active": ("🔵", "#1E40AF", "#DBEAFE"),
-                    "closed": ("🔴", "#991B1B", "#FEE2E2"),
-                    "completed": ("⚫", "#374151", "#F3F4F6"),
+                    "recruiting": ("", "#166534", "#DCFCE7"),
+                    "active": ("", "#1E40AF", "#DBEAFE"),
+                    "closed": ("", "#991B1B", "#FEE2E2"),
+                    "completed": ("", "#374151", "#F3F4F6"),
                 }
-                icon, text_c, bg_c = badge_colours.get(status, ("⚪", "#374151", "#F9FAFB"))
+                icon, text_c, bg_c = badge_colours.get(status, ("", "#374151", "#F9FAFB"))
                 st.markdown(f"""
                 <div style="background:{bg_c}; color:{text_c}; border-radius:8px;
                             padding:0.4rem 0.75rem; text-align:center; font-size:0.82rem; font-weight:600;">

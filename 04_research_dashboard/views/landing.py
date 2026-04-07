@@ -113,7 +113,7 @@ def show_landing():
     # ── Dev login — top right ─────────────────────────────────────────────────
     _, dev_col = st.columns([5.5, 1])
     with dev_col:
-        if st.button("🔧 Dev", key="dev_login_btn", help="Developer preview — bypasses auth"):
+        if st.button(" Dev", key="dev_login_btn", help="Developer preview — bypasses auth"):
             _activate_dev_mode()
             st.rerun()
 
@@ -122,7 +122,7 @@ def show_landing():
     with col:
         st.markdown("""
         <div class="landing-card">
-            <span class="brand-icon">❤️</span>
+            <span class="brand-icon"></span>
             <h1 class="brand-name">Heartbeat</h1>
             <p class="brand-tagline">Researcher Portal &middot; Cardiac Research Platform</p>
         </div>
@@ -135,7 +135,7 @@ def show_landing():
         with c1:
             st.markdown("""
             <div class="option-card">
-                <div style="font-size:1.5rem; margin-bottom:0.4rem;">📝</div>
+                <div style="font-size:1.5rem; margin-bottom:0.4rem;"></div>
                 <div class="option-title" style="color:#1D4ED8;">New Researcher</div>
                 <div class="option-desc">Register &amp; set up your study</div>
             </div>
@@ -147,7 +147,7 @@ def show_landing():
         with c2:
             st.markdown("""
             <div class="option-card">
-                <div style="font-size:1.5rem; margin-bottom:0.4rem;">🔑</div>
+                <div style="font-size:1.5rem; margin-bottom:0.4rem;"></div>
                 <div class="option-title" style="color:#059669;">Existing Researcher</div>
                 <div class="option-desc">Log in to access your study</div>
             </div>

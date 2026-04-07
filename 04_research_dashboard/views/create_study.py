@@ -15,7 +15,7 @@ def show_create_study(supabase):
     with col:
         st.markdown(f"""
         <div style="text-align:center; margin-bottom:1.5rem;">
-            <span class="auth-logo-icon">🧪</span>
+            <span class="auth-logo-icon"></span>
             <h2 class="auth-title">Set up your Study</h2>
             <p class="auth-subtitle">Welcome, {display_name}. Let's create your research study.</p>
         </div>
@@ -33,7 +33,7 @@ def show_create_study(supabase):
             gap: 0.75rem;
             align-items: flex-start;
         ">
-            <div style="font-size:1.1rem; margin-top:1px;">ℹ️</div>
+            <div style="font-size:1.1rem; margin-top:1px;"></div>
             <div>
                 <div style="color:#1D4ED8; font-size:0.82rem; font-weight:700; margin-bottom:0.15rem;">
                     One study per researcher
@@ -102,7 +102,7 @@ def show_create_study(supabase):
                 if study:
                     st.session_state.active_study = study
                     code = study.get("study_code", "")
-                    st.success(f"✅ Study created! Your study code is **{code}** — save it somewhere safe.")
+                    st.success(f" Study created! Your study code is **{code}** — save it somewhere safe.")
                     time.sleep(2)
                     st.rerun()
                 else:

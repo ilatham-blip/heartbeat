@@ -18,7 +18,7 @@ import views.create_study as create_study
 st.set_page_config(
     page_title="Heartbeat Research Dashboard",
     layout="wide",
-    page_icon="❤️"
+    page_icon=""
 )
 
 # ── Dashboard CSS (only shown post-auth) ────────────────────────────────────
@@ -212,7 +212,7 @@ if "page_selection" not in st.session_state:
     st.session_state.page_selection = "Home"
 
 with st.sidebar:
-    st.image("https://emojicdn.elk.sh/❤️", width=44)
+    st.image("https://emojicdn.elk.sh/", width=44)
     st.title("Heartbeat")
 
     st.markdown("---")
@@ -222,7 +222,7 @@ with st.sidebar:
     if is_dev:
         st.markdown("""
         <div class="dev-badge">
-            <span style="font-size:1rem;">🔧</span>
+            <span style="font-size:1rem;"></span>
             <div>
                 <div style="color:#C2410C; font-size:0.72rem; font-weight:700; letter-spacing:0.04em;">DEVELOPER MODE</div>
                 <div style="color:#EA580C; font-size:0.7rem;">Mock data · No DB writes</div>
@@ -234,22 +234,22 @@ with st.sidebar:
     pass
 
     # Navigation
-    if st.button("🏠  Home", key="btn_home", use_container_width=True):
+    if st.button("  Home", key="btn_home", use_container_width=True):
         st.session_state.page_selection = "Home"
         st.rerun()
 
-    if st.button("📊  Dashboard", key="btn_dashboard", use_container_width=True):
+    if st.button("  Dashboard", key="btn_dashboard", use_container_width=True):
         st.session_state.page_selection = "Data Dashboard"
         st.rerun()
 
-    if st.button("⚙️  Admin", key="btn_more", use_container_width=True):
+    if st.button("  Admin", key="btn_more", use_container_width=True):
         st.session_state.page_selection = "More"
         st.rerun()
 
     st.markdown("---")
 
     # Logout
-    if st.button("🚪  Log Out", key="btn_logout", use_container_width=True):
+    if st.button("  Log Out", key="btn_logout", use_container_width=True):
         if not st.session_state.get("dev_mode"):
             sign_out_researcher(supabase)
         keys_to_clear = ["researcher", "active_study", "pending_study",

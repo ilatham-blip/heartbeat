@@ -10,7 +10,7 @@ def show_login(supabase):
     with col:
         st.markdown("""
         <div style="text-align:center; margin-bottom:1.5rem;">
-            <span class="auth-logo-icon">❤️</span>
+            <span class="auth-logo-icon"></span>
             <h2 class="auth-title">Welcome back</h2>
             <p class="auth-subtitle">Sign in to your researcher account</p>
         </div>

@@ -14,7 +14,7 @@ def show_study_login(supabase):
     with col:
         st.markdown("""
         <div style="text-align:center; margin-bottom:1.5rem;">
-            <span class="auth-logo-icon">🔐</span>
+            <span class="auth-logo-icon"></span>
             <h2 class="auth-title">Log in to your Study</h2>
             <p class="auth-subtitle">Enter your study password to access the dashboard</p>
         </div>
@@ -35,7 +35,7 @@ def show_study_login(supabase):
                 align-items: center;
                 gap: 0.75rem;
             ">
-                <div style="font-size:1.25rem;">🔬</div>
+                <div style="font-size:1.25rem;"></div>
                 <div>
                     <div style="color:#64748B; font-size:0.7rem; font-weight:600; letter-spacing:0.06em; text-transform:uppercase;">Study Code</div>
                     <div style="color:#1D4ED8; font-size:1.15rem; font-weight:800; letter-spacing:0.12em;">{known_code}</div>
@@ -88,6 +88,6 @@ def show_study_login(supabase):
 
         st.markdown("""
         <p class="auth-footer-link">
-            🔒 Study credentials are independent of your account password.
+             Study credentials are independent of your account password.
         </p>
         """, unsafe_allow_html=True)
