@@ -187,6 +187,21 @@ def ppg_processing(measurement_id):
 
     df_peaks = pd.DataFrame({'Peak Sample': flat_peaks})
 
+
+    # Upload peaks to storage
+    peaks_filename = f"{measurement_id}_peaks.parquet"
+    peaks_buffer = BytesIO()
+    df_peaks.to_parquet(peaks_buffer, index=False)
+    peaks_buffer.seek(0)
+
+    supabase.storage.from_('peak_indices').upload(
+        path=peaks_filename,
+        file=peaks_buffer.getvalue(),
+        file_options={"content-type": "application/octet-stream"}
+        )
+
+
+
     # Call the HR and HRV feature extraction function
     if not peaks:
         print("No peaks detected — skipping HRV extraction.")
@@ -206,6 +221,7 @@ def ppg_processing(measurement_id):
             'lf': float(hrv_data['HRV_LF'][0]) if pd.notna(hrv_data['HRV_LF'][0]) else None,
             'hf': float(hrv_data['HRV_HF'][0]) if pd.notna(hrv_data['HRV_HF'][0]) else None,
             'lf_hf_ratio': float(hrv_data['HRV_LFHF'][0]) if pd.notna(hrv_data['HRV_LFHF'][0]) else None,
+            'peaks_file_path': peaks_filename,
         }).eq('measurement_id', measurement_id).execute()  
 
 
