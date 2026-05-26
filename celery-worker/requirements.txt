@@ -1,0 +1,31 @@
+# --- Database & Environment ---
+supabase
+python-dotenv
+functions_framework
+celery
+flask
+
+# --- Data Analysis ---
+pandas
+numpy
+scipy
+pyarrow          # required to save .parquet files
+fastparquet      # Alternative engine for parquet
+duckdb
+
+# ---  Specific Signal Processing Tool ---
+e2epyppg         
+matplotlib
+heartpy>=1.2.7
+joblib>=1.1.0
+more_itertools>=10.1.0
+neurokit2>=0.2.1
+numpy>=1.21.5
+pandas>=1.4.4
+scikit_learn>=1.0.2
+scipy>=1.9.1
+tensorflow==2.13.0
+keras==2.13.1
+torch>=1.9.1
+pyod
+typing-extensions
