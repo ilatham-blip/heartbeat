@@ -296,7 +296,11 @@ class DatabaseService {
   // ---------------------------------------------------------------------------
   Future<void> uploadRawPPGAndCreateMeasurement(
       String userId, DateTime timestamp, List<double> ppgData, String source) async {
-    if (ppgData.isEmpty) return;
+    print('🚀 uploadRawPPGAndCreateMeasurement called. userId=$userId, source=$source, ppgData.length=${ppgData.length}');
+    if (ppgData.isEmpty) {
+      print('🚨 ppgData is EMPTY, returning early.');
+      return;
+    }
 
     try {
       // 1. Create CSV string
@@ -307,29 +311,35 @@ class DatabaseService {
       }
       final csvString = sb.toString();
       final bytes = Uint8List.fromList(utf8.encode(csvString));
+      print('✅ CSV created: ${bytes.length} bytes');
 
       // 2. Generate file path
       final timeStr = timestamp.toIso8601String().replaceAll(':', '-').replaceAll('.', '-');
       final fileName = '${userId}_${source}_${timeStr}.csv';
       final storagePath = '$userId/$fileName';
+      print('📁 Storage path: raw_uploads/$storagePath');
 
       // 3. Upload to Supabase Storage
+      print('⬆️ Uploading to Supabase Storage...');
       await _client.storage.from('raw_uploads').uploadBinary(
         storagePath,
         bytes,
         fileOptions: const FileOptions(contentType: 'text/csv', upsert: true),
       );
+      print('✅ Storage upload SUCCESSFUL!');
 
       // 4. Create row in measurements table
+      print('📝 Inserting row into measurements table...');
       await _client.from('measurements').insert({
         'user_id': userId,
         'recorded_at': timestamp.toIso8601String(),
         'raw_file_path': storagePath,
         'source': source,
       });
-      print('Successfully uploaded PPG data to raw_uploads/$storagePath and linked measurement.');
-    } catch (e) {
-      print('Error uploading raw PPG data: $e');
+      print('✅ Measurement row inserted SUCCESSFULLY!');
+    } catch (e, stackTrace) {
+      print('🚨🚨🚨 ERROR in uploadRawPPGAndCreateMeasurement: $e');
+      print('Stack trace: $stackTrace');
     }
   }
 }

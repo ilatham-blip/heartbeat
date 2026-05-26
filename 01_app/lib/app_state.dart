@@ -795,9 +795,13 @@ class MyAppState extends ChangeNotifier{
       'notes': notes,
     });
 
+    print('📋 EVENING: ppgData.length = ${ppgData.length}');
     if (ppgData.isNotEmpty) {
+      print('🚀 EVENING: Calling uploadRawPPGAndCreateMeasurement...');
       await _databaseService.uploadRawPPGAndCreateMeasurement(
           user.id, DateTime.now(), ppgData, 'evening_checkin');
+    } else {
+      print('⚠️ EVENING: ppgData is EMPTY, skipping upload.');
     }
   }
 
@@ -892,9 +896,13 @@ class MyAppState extends ChangeNotifier{
       'notes': notes,
     });
 
+    print('📋 MORNING: ppgData.length = ${ppgData.length}');
     if (ppgData.isNotEmpty) {
+      print('🚀 MORNING: Calling uploadRawPPGAndCreateMeasurement...');
       await _databaseService.uploadRawPPGAndCreateMeasurement(
           user.id, DateTime.now(), ppgData, 'morning_checkin');
+    } else {
+      print('⚠️ MORNING: ppgData is EMPTY, skipping upload.');
     }
   }
 
