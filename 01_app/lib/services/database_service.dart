@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DatabaseService {
@@ -251,5 +253,83 @@ class DatabaseService {
   Future<void> saveEpisode(Map<String, dynamic> data) async {
     // data should correspond to columns in 'episodes' table
     await _insertWithSchemaFallback('episodes', data);
+  }
+
+  // ---------------------------------------------------------------------------
+  // FETCH HISTORICAL DATA
+  // ---------------------------------------------------------------------------
+
+  Future<List<Map<String, dynamic>>> fetchMorningCheckIns(String userId) async {
+    return await _client
+        .from('morning_checkins')
+        .select()
+        .eq('user_id', userId)
+        .order('date', ascending: false);
+  }
+
+  Future<List<Map<String, dynamic>>> fetchEveningCheckIns(String userId) async {
+    return await _client
+        .from('evening_checkins')
+        .select()
+        .eq('user_id', userId)
+        .order('date', ascending: false);
+  }
+
+  Future<List<Map<String, dynamic>>> fetchLifestyleLogs(String userId) async {
+    return await _client
+        .from('lifestyle_logs')
+        .select()
+        .eq('user_id', userId)
+        .order('date', ascending: false);
+  }
+
+  Future<List<Map<String, dynamic>>> fetchEpisodes(String userId) async {
+    return await _client
+        .from('episodes')
+        .select()
+        .eq('user_id', userId)
+        .order('date', ascending: false);
+  }
+
+  // ---------------------------------------------------------------------------
+  // UPLOAD RAW PPG DATA & CREATE MEASUREMENT
+  // ---------------------------------------------------------------------------
+  Future<void> uploadRawPPGAndCreateMeasurement(
+      String userId, DateTime timestamp, List<double> ppgData, String source) async {
+    if (ppgData.isEmpty) return;
+
+    try {
+      // 1. Create CSV string
+      final sb = StringBuffer();
+      sb.writeln("index,ppg_value");
+      for (int i = 0; i < ppgData.length; i++) {
+        sb.writeln("$i,${ppgData[i]}");
+      }
+      final csvString = sb.toString();
+      final bytes = Uint8List.fromList(utf8.encode(csvString));
+
+      // 2. Generate file path
+      final timeStr = timestamp.toIso8601String().replaceAll(':', '-').replaceAll('.', '-');
+      final fileName = '${userId}_${source}_${timeStr}.csv';
+      final storagePath = '$userId/$fileName';
+
+      // 3. Upload to Supabase Storage
+      await _client.storage.from('raw_uploads').uploadBinary(
+        storagePath,
+        bytes,
+        fileOptions: const FileOptions(contentType: 'text/csv', upsert: true),
+      );
+
+      // 4. Create row in measurements table
+      await _client.from('measurements').insert({
+        'user_id': userId,
+        'recorded_at': timestamp.toIso8601String(),
+        'raw_file_path': storagePath,
+        'source': source,
+      });
+      print('Successfully uploaded PPG data to raw_uploads/$storagePath and linked measurement.');
+    } catch (e) {
+      print('Error uploading raw PPG data: $e');
+    }
   }
 }

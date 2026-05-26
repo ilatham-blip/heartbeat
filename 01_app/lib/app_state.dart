@@ -512,6 +512,213 @@ class MyAppState extends ChangeNotifier{
   final List<EveningEntry> eveningEntries = [];
   EveningDraft? eveningDraft;
 
+
+  bool _hasFetchedHistoricalData = false;
+
+  Future<void> loadHistoricalData() async {
+    if (_hasFetchedHistoricalData) return;
+    try {
+      final user = _requireCurrentUser();
+      _hasFetchedHistoricalData = true;
+
+      final mornings = await _databaseService.fetchMorningCheckIns(user.id);
+      final evenings = await _databaseService.fetchEveningCheckIns(user.id);
+      final episodes = await _databaseService.fetchEpisodes(user.id);
+      final lifestyles = await _databaseService.fetchLifestyleLogs(user.id);
+
+      _morningEntries.clear();
+      for (var row in mornings) {
+        final dateStr = row['date'] as String;
+        final timeStr = row['time'] as String? ?? '00:00';
+        final dt = DateTime.tryParse('${dateStr}T${timeStr.padLeft(5, '0')}');
+        if (dt != null) {
+          _morningEntries.add(MorningEntry(
+            dateTime: dt,
+            insomnia: Severity.values[row['insomnia'] ?? 0],
+            abnormalTiredness: Severity.values[row['abnormal_tiredness'] ?? 0],
+            dizziness: Severity.values[row['dizziness'] ?? 0],
+            palpitations: Severity.values[row['palpitations'] ?? 0],
+            dyspnoea: Severity.values[row['dyspnoea'] ?? 0],
+            chestPain: Severity.values[row['chest_pain'] ?? 0],
+            headache: Severity.values[row['headache'] ?? 0],
+            concentration: Severity.values[row['concentration'] ?? 0],
+            musclePain: Severity.values[row['muscle_pain'] ?? 0],
+            nausea: Severity.values[row['nausea'] ?? 0],
+            giProblems: Severity.values[row['gi_problems'] ?? 0],
+            notes: row['notes'] ?? '',
+          ));
+        }
+      }
+
+      eveningEntries.clear();
+      for (var row in evenings) {
+        final dateStr = row['date'] as String;
+        final timeStr = row['time'] as String? ?? '00:00';
+        final dt = DateTime.tryParse('${dateStr}T${timeStr.padLeft(5, '0')}');
+        if (dt != null) {
+          eveningEntries.add(EveningEntry(
+            dateTime: dt,
+            heartRateBpm: row['heart_rate'] ?? 0,
+            hrvMs: row['hrv'] ?? 0,
+            dizziness: Severity.values[row['dizziness'] ?? 0],
+            palpitations: Severity.values[row['palpitations'] ?? 0],
+            dyspnoea: Severity.values[row['dyspnoea'] ?? 0],
+            chestPain: Severity.values[row['chest_pain'] ?? 0],
+            headache: Severity.values[row['headache'] ?? 0],
+            concentration: Severity.values[row['concentration'] ?? 0],
+            musclePain: Severity.values[row['muscle_pain'] ?? 0],
+            nausea: Severity.values[row['nausea'] ?? 0],
+            giProblems: Severity.values[row['gi_problems'] ?? 0],
+            abnormalTiredness: Severity.values[row['abnormal_tiredness'] ?? 0],
+            insomnia: Severity.values[row['insomnia'] ?? 0],
+            notes: row['notes'] ?? '',
+          ));
+        }
+      }
+
+      episodeEntries.clear();
+      for (var row in episodes) {
+        final dateStr = row['date'] as String;
+        final timeStr = row['time'] as String? ?? '00:00';
+        final dt = DateTime.tryParse('${dateStr}T${timeStr.padLeft(5, '0')}');
+        if (dt != null) {
+          final scoresData = row['scores'] as Map<String, dynamic>? ?? {};
+          final scores = scoresData.map((k, v) => MapEntry(k, (v as num).toDouble()));
+          episodeEntries.add(EpisodeEntry(
+            dateTime: dt,
+            scores: scores,
+            notes: row['notes'] ?? '',
+          ));
+        }
+      }
+
+      _lifestyleEntries.clear();
+      for (var row in lifestyles) {
+        final dateStr = row['date'] as String;
+        final dt = DateTime.tryParse(dateStr);
+        if (dt != null) {
+          _lifestyleEntries.add(LifestyleEntry(
+            date: dt,
+            hotPlace: row['hot_place'] ?? false,
+            refinedCarbs: row['refined_carbs'] ?? false,
+            standingMins: row['standing_mins'] ?? 0,
+            carbsGrams: row['carbs_grams'] ?? 0,
+            waterLitres: (row['water_litres'] ?? 0).toDouble(),
+            alcoholUnits: row['alcohol_units'] ?? 0,
+            restTooMuch: row['rest_too_much'] ?? false,
+            exMildMins: row['ex_mild'] ?? 0,
+            exModerateMins: row['ex_moderate'] ?? 0,
+            exIntenseMins: row['ex_intense'] ?? 0,
+            onPeriod: row['on_period'] ?? false,
+            stressLevel: row['stress_level'] ?? 0,
+            notes: row['notes'] ?? '',
+          ));
+        }
+      }
+
+      dizziness.clear();
+      hydration.clear();
+
+      final allEps = episodeEntries.reversed.toList();
+      for (var ep in allEps) {
+        if (ep.scores.containsKey('Dizziness when standing')) {
+          dizziness.add(ep.scores['Dizziness when standing'] ?? 0.0);
+        }
+      }
+
+      final allMornings = _morningEntries.reversed.toList();
+      for (var m in allMornings) {
+        dizziness.add((m.dizziness.index / 3.0) * 10.0);
+      }
+
+      final allLifestyles = _lifestyleEntries.reversed.toList();
+      for (var l in allLifestyles) {
+        hydration.add((l.waterLitres / 5.0) * 10.0);
+      }
+
+      if (allEps.isNotEmpty) {
+        allEps.last.scores.forEach((k, v) {
+          episodeScores[k] = v;
+        });
+      }
+
+      notifyListeners();
+    } catch (e) {
+      print("Error loading historical data: $e");
+    }
+  }
+
+  List<MapEntry<DateTime, double>> getFilteredDizziness(String timeRange) {
+    DateTime now = DateTime.now();
+    DateTime cutoff;
+    if (timeRange == 'Day') cutoff = now.subtract(const Duration(days: 1));
+    else if (timeRange == 'Week') cutoff = now.subtract(const Duration(days: 7));
+    else if (timeRange == 'Month') cutoff = now.subtract(const Duration(days: 30));
+    else cutoff = DateTime.fromMillisecondsSinceEpoch(0); 
+
+    List<MapEntry<DateTime, double>> points = [];
+    
+    for (var ep in episodeEntries) {
+      if (ep.dateTime.isAfter(cutoff) && ep.scores.containsKey('Dizziness when standing')) {
+        points.add(MapEntry(ep.dateTime, ep.scores['Dizziness when standing'] ?? 0.0));
+      }
+    }
+    for (var m in _morningEntries) {
+      if (m.dateTime.isAfter(cutoff)) {
+        points.add(MapEntry(m.dateTime, (m.dizziness.index / 3.0) * 10.0));
+      }
+    }
+    points.sort((a, b) => a.key.compareTo(b.key));
+    return points;
+  }
+
+  List<MapEntry<DateTime, double>> getFilteredFatigue(String timeRange) {
+    DateTime now = DateTime.now();
+    DateTime cutoff;
+    if (timeRange == 'Day') cutoff = now.subtract(const Duration(days: 1));
+    else if (timeRange == 'Week') cutoff = now.subtract(const Duration(days: 7));
+    else if (timeRange == 'Month') cutoff = now.subtract(const Duration(days: 30));
+    else cutoff = DateTime.fromMillisecondsSinceEpoch(0); 
+
+    List<MapEntry<DateTime, double>> points = [];
+    for (var ep in episodeEntries) {
+      if (ep.dateTime.isAfter(cutoff) && ep.scores.containsKey('Difficulty concentrating')) {
+        points.add(MapEntry(ep.dateTime, ep.scores['Difficulty concentrating'] ?? 0.0));
+      }
+    }
+    for (var e in eveningEntries) {
+      if (e.dateTime.isAfter(cutoff)) {
+        points.add(MapEntry(e.dateTime, (e.abnormalTiredness.index / 3.0) * 10.0));
+      }
+    }
+    for (var m in _morningEntries) {
+      if (m.dateTime.isAfter(cutoff)) {
+        points.add(MapEntry(m.dateTime, (m.abnormalTiredness.index / 3.0) * 10.0));
+      }
+    }
+    points.sort((a, b) => a.key.compareTo(b.key));
+    return points;
+  }
+
+  List<MapEntry<DateTime, double>> getFilteredHydration(String timeRange) {
+    DateTime now = DateTime.now();
+    DateTime cutoff;
+    if (timeRange == 'Day') cutoff = now.subtract(const Duration(days: 1));
+    else if (timeRange == 'Week') cutoff = now.subtract(const Duration(days: 7));
+    else if (timeRange == 'Month') cutoff = now.subtract(const Duration(days: 30));
+    else cutoff = DateTime.fromMillisecondsSinceEpoch(0); 
+
+    List<MapEntry<DateTime, double>> points = [];
+    for (var l in _lifestyleEntries) {
+      if (l.date.isAfter(cutoff)) {
+        points.add(MapEntry(l.date, (l.waterLitres / 5.0) * 10.0));
+      }
+    }
+    points.sort((a, b) => a.key.compareTo(b.key));
+    return points;
+  }
+
+
   Future<void> saveEveningReview({
     required DateTime date,
     required TimeOfDay time,
@@ -586,9 +793,12 @@ class MyAppState extends ChangeNotifier{
       'abnormal_tiredness': abnormalTiredness.index,
       'insomnia': insomnia.index,
       'notes': notes,
-      'ppg_data': ppgData,
-      'ecg_data': ecgData,
     });
+
+    if (ppgData.isNotEmpty) {
+      await _databaseService.uploadRawPPGAndCreateMeasurement(
+          user.id, DateTime.now(), ppgData, 'evening_checkin');
+    }
   }
 
   void pauseEveningReview(EveningDraft draft) {
@@ -680,9 +890,12 @@ class MyAppState extends ChangeNotifier{
       'nausea': nausea.index,
       'gi_problems': giProblems.index,
       'notes': notes,
-      'ppg_data': ppgData,
-      'ecg_data': ecgData,
     });
+
+    if (ppgData.isNotEmpty) {
+      await _databaseService.uploadRawPPGAndCreateMeasurement(
+          user.id, DateTime.now(), ppgData, 'morning_checkin');
+    }
   }
 
   void pauseMorningCheckIn(MorningDraft draft) {

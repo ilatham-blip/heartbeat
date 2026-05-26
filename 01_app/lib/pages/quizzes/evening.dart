@@ -203,7 +203,7 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
   final _pluxService = PluxService();
 
   // --- PLUX STATE VARIABLES ---
-  final int _recordDuration = 120;
+  final int _recordDuration = 5;
   bool _isPluxConnected = false;
 
   // App Modes
@@ -1015,20 +1015,28 @@ class _SeveritySelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    return Column(
       children: List.generate(4, (i) {
         final selected = value == _values[i];
-        return ChoiceChip(
-          label: Text(_labels[i]),
-          selected: selected,
-          pressElevation: 0,
-          onSelected: (_) => onChanged(_values[i]),
-          selectedColor: const Color(0xFF4F7CFF),
-          labelStyle: TextStyle(
-            color: selected ? Colors.white : Colors.black87,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => onChanged(_values[i]),
+              style: OutlinedButton.styleFrom(
+                backgroundColor: selected ? const Color(0xFF4F7CFF) : Colors.white,
+                foregroundColor: selected ? Colors.white : Colors.black87,
+                side: BorderSide(
+                    color: selected ? const Color(0xFF4F7CFF) : Colors.black26),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                textStyle: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              child: Text(_labels[i]),
+            ),
           ),
         );
       }),

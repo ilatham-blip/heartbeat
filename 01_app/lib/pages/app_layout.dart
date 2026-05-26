@@ -14,6 +14,13 @@ class AppLayout extends StatefulWidget {
 }
 
 class _AppLayoutState extends State<AppLayout> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<MyAppState>(context, listen: false).loadHistoricalData();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

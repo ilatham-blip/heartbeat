@@ -154,9 +154,10 @@ class GeneralBarChart extends StatelessWidget {
 }
 
 class MultiSymptomPlot extends StatelessWidget {
-  final List<double> dizziness;
-  final List<double> fatigue;
-  final List<double> hydration;
+  final List<MapEntry<DateTime, double>> dizziness;
+  final List<MapEntry<DateTime, double>> fatigue;
+  final List<MapEntry<DateTime, double>> hydration;
+  final String timeRange;
   final double width;
   final double height;
 
@@ -165,6 +166,7 @@ class MultiSymptomPlot extends StatelessWidget {
     required this.dizziness,
     required this.fatigue,
     required this.hydration,
+    required this.timeRange,
     required this.width,
     required this.height,
   });
@@ -173,10 +175,11 @@ class MultiSymptomPlot extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<LineChartBarData> lines = [];
 
-    LineChartBarData makeLine(List<double> vals, Color color) {
+    LineChartBarData makeLine(List<MapEntry<DateTime, double>> vals, Color color) {
       return LineChartBarData(
-        spots: [for (int i = 0; i < vals.length; i++) FlSpot(i.toDouble(), vals[i])],
-        isCurved: true,
+        spots: [for (var p in vals) FlSpot(p.key.millisecondsSinceEpoch.toDouble(), p.value)],
+        isCurved: false,
+        preventCurveOverShooting: true,
         color: color,
         barWidth: 3,
         dotData: FlDotData(show: true),
@@ -201,16 +204,29 @@ class MultiSymptomPlot extends StatelessWidget {
       );
     }
 
-    // compute max X for axis bounds (Y is always 0-10)
-    final maxLen = [dizziness.length, fatigue.length, hydration.length].reduce((a, b) => a > b ? a : b);
+    final now = DateTime.now().millisecondsSinceEpoch.toDouble();
+    double minX = now;
+    if (timeRange == 'Day') {
+      minX = now - (24 * 60 * 60 * 1000);
+    } else if (timeRange == 'Week') {
+      minX = now - (7 * 24 * 60 * 60 * 1000);
+    } else if (timeRange == 'Month') {
+      minX = now - (30 * 24 * 60 * 60 * 1000);
+    }
+    double maxX = now;
+
+    // Add padding to prevent points and edge labels from overlapping the axis
+    final range = maxX - minX;
+    minX -= range * 0.10;
+    maxX += range * 0.10;
 
     return SizedBox(
       width: width,
       height: height,
       child: LineChart(
         LineChartData(
-          minX: 0,
-          maxX: (maxLen - 1).toDouble().clamp(0, double.infinity),
+          minX: minX,
+          maxX: maxX,
           minY: 0,
           maxY: 10,
           gridData: FlGridData(show: true),
@@ -218,12 +234,37 @@ class MultiSymptomPlot extends StatelessWidget {
           titlesData: FlTitlesData(
             topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
             rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
+            bottomTitles: AxisTitles(
+              axisNameWidget: Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(timeRange == 'Day' ? 'Time of Day' : 'Time (Date)', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+              ),
+              axisNameSize: 24,
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 40,
+                getTitlesWidget: (value, meta) {
+                  if (value == meta.min || value == meta.max) {
+                    return const SizedBox.shrink();
+                  }
+                  final dt = DateTime.fromMillisecondsSinceEpoch(value.toInt());
+                  final String label = timeRange == 'Day' 
+                      ? '${dt.hour}:${dt.minute.toString().padLeft(2, '0')}' 
+                      : '${dt.month}/${dt.day}';
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(label, style: const TextStyle(fontSize: 10)),
+                  );
+                },
+              ),
+            ),
             leftTitles: AxisTitles(
+              axisNameWidget: const Text('Severity', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+              axisNameSize: 20,
               sideTitles: SideTitles(
                 showTitles: true,
                 interval: 2,
-                reservedSize: 40,
+                reservedSize: 30,
               ),
             ),
           ),

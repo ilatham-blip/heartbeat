@@ -119,3 +119,21 @@ FOR SELECT USING (true);
 -- CRITICAL: NO INSERT/UPDATE POLICY.
 -- Regular users can never create or edit a research study. 
 -- Only you (the admin) can do this via the Supabase Dashboard.
+
+-- ========================================================
+-- 9. STORAGE POLICIES (raw_uploads bucket)
+-- ========================================================
+-- In Supabase, Storage buckets have their own RLS policies.
+-- These must be run in the SQL Editor to allow the app to upload files.
+
+-- 1. Allow authenticated users to upload files to their own folder in the raw_uploads bucket
+CREATE POLICY "Users can upload raw data"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'raw_uploads' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+-- 2. Allow authenticated users to read files from their own folder
+CREATE POLICY "Users can view own raw data"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (bucket_id = 'raw_uploads' AND auth.uid()::text = (storage.foldername(name))[1]);

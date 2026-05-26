@@ -15,6 +15,7 @@ class _TrackerPage extends State<TrackerPage> {
   bool _showDizziness = true;
   bool _showFatigue = true;
   bool _showHydration = true;
+  String _timeFilter = 'Month';
   
   // Helper to compute trend direction from a numeric series
   Map<String, dynamic> computeTrend(List<double> series) {
@@ -33,9 +34,12 @@ class _TrackerPage extends State<TrackerPage> {
     if (n < 2) {
       recentAvg = series.last;
       prevAvg = series.first;
-    } else if (n < 4) {
-      recentAvg = series.sublist(n - 1).reduce((a, b) => a + b) / (n - (n - 1));
-      prevAvg = series.sublist(0, n - 1).reduce((a, b) => a + b) / (n - 1);
+    } else if (n < 6) {
+      int mid = n ~/ 2;
+      final recentSlice = series.sublist(n - mid, n);
+      final prevSlice = series.sublist(0, n - mid);
+      recentAvg = recentSlice.reduce((a, b) => a + b) / recentSlice.length;
+      prevAvg = prevSlice.reduce((a, b) => a + b) / prevSlice.length;
     } else {
       final recentSlice = series.sublist(n - 3, n);
       final prevSlice = series.sublist(n - 6, n - 3);
@@ -386,6 +390,31 @@ class _TrackerPage extends State<TrackerPage> {
                           ),
                         ),
                         const SizedBox(height: 12),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            SegmentedButton<String>(
+                              showSelectedIcon: false,
+                              segments: const [
+                                ButtonSegment(value: 'Day', label: Text('Day')),
+                                ButtonSegment(value: 'Week', label: Text('Week')),
+                                ButtonSegment(value: 'Month', label: Text('Month')),
+                              ],
+                              selected: {_timeFilter},
+                              onSelectionChanged: (Set<String> newSelection) {
+                                setState(() {
+                                  _timeFilter = newSelection.first;
+                                });
+                              },
+                              style: SegmentedButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                textStyle: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
                         Wrap(
                           spacing: 8,
                           children: [
@@ -407,10 +436,6 @@ class _TrackerPage extends State<TrackerPage> {
                               avatar: const CircleAvatar(backgroundColor: Colors.blue, radius: 6),
                               onSelected: (v) => setState(() => _showHydration = v),
                             ),
-                            TextButton(
-                              onPressed: () => setState(() { _showDizziness = true; _showFatigue = true; _showHydration = true; }),
-                              child: const Text('All'),
-                            ),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -420,9 +445,10 @@ class _TrackerPage extends State<TrackerPage> {
                           child: MultiSymptomPlot(
                                 width: constraints.maxWidth * 0.9,
                                 height: constraints.maxHeight / 3,
-                                dizziness: _showDizziness ? (appState.dizziness.isNotEmpty ? appState.dizziness : [appState.combinedDizzinessAvg]) : const [],
-                                fatigue: _showFatigue ? appState.fatigueSeries : const [],
-                                hydration: _showHydration ? appState.hydrationSeries : const [],
+                                timeRange: _timeFilter,
+                                dizziness: _showDizziness ? appState.getFilteredDizziness(_timeFilter) : const [],
+                                fatigue: _showFatigue ? appState.getFilteredFatigue(_timeFilter) : const [],
+                                hydration: _showHydration ? appState.getFilteredHydration(_timeFilter) : const [],
                               ),
                         ),
                       ],
