@@ -146,72 +146,117 @@ def show_user_detail(user_id: str, supabase):
     # --- Raw Signal & Peak Analysis ---
     st.markdown("#### Signal Analysis")
     
-    with st.spinner("Fetching signal data..."):
-        try:
-            # Fetch data automatically based on user_id, just like lines 10-15
-            file_name = f"{user_id}.parquet"
+    if measurements_df.empty or 'raw_file_path' not in measurements_df.columns:
+        st.info("No signal data found for this user.")
+    else:
+        # Filter for valid file paths
+        valid_measurements = measurements_df.dropna(subset=['raw_file_path'])
+        valid_measurements = valid_measurements[valid_measurements['raw_file_path'].astype(str).str.strip() != ""]
+        
+        if valid_measurements.empty:
+            st.info("No valid signal data paths found for this user.")
+        else:
+            # Let user select measurement
+            measurement_options = valid_measurements.apply(
+                lambda row: f"{pd.to_datetime(row['recorded_at']).strftime('%Y-%m-%d %H:%M:%S') if pd.notnull(row['recorded_at']) else 'Unknown'} - {row.get('source', 'Unknown')} ({str(row.get('measurement_id', ''))[:8]})", axis=1
+            ).tolist()
             
-            raw_res = supabase.storage.from_("raw_uploads").download(file_name)
-            peak_res = supabase.storage.from_("peak_indices").download(file_name)
+            selected_option = st.selectbox("Select Measurement for Signal Analysis", options=measurement_options)
             
-            raw_df = pd.read_parquet(io.BytesIO(raw_res))
-            peaks_df = pd.read_parquet(io.BytesIO(peak_res))
+            selected_idx = measurement_options.index(selected_option)
+            selected_row = valid_measurements.iloc[selected_idx]
+            file_path = selected_row['raw_file_path']
             
-            # --- Plot 1: Raw Upload + Peaks Overlaid ---
-            signal_col = 'signal' if 'signal' in raw_df.columns else raw_df.columns[-1]
-            peak_col = 'peak_index' if 'peak_index' in peaks_df.columns else peaks_df.columns[0]
-            
-            # Try to find a time column, otherwise fallback to the row index
-            time_col = 'time' if 'time' in raw_df.columns else ('timestamp' if 'timestamp' in raw_df.columns else None)
-            peak_indices = peaks_df[peak_col].values
-            
-            x_raw = raw_df[time_col] if time_col else raw_df.index
-            x_peaks = raw_df[time_col].iloc[peak_indices] if time_col else peak_indices
-
-            fig_signal = go.Figure()
-            
-            # Add raw signal line
-            fig_signal.add_trace(go.Scatter(
-                x=x_raw, 
-                y=raw_df[signal_col],
-                mode='lines',
-                name='Raw Signal',
-                line=dict(color='#2563EB')
-            ))
-            
-            # Add peaks as red dots
-            fig_signal.add_trace(go.Scatter(
-                x=x_peaks,
-                y=raw_df[signal_col].iloc[peak_indices], 
-                mode='markers',
-                name='Detected Peaks',
-                marker=dict(color='#EF4444', size=8, symbol='x')
-            ))
-            
-            fig_signal.update_layout(title="Raw Signal with Peak Detection", xaxis_title="Time / Index", yaxis_title="Amplitude")
-            st.plotly_chart(fig_signal, use_container_width=True)
-            
-            # --- Plot 2: NN Intervals Variation ---
-            nn_intervals = np.diff(peak_indices)
-            
-            # The x-axis for NN intervals will now be the time (or index) of the *second* peak in each pair
-            nn_times = x_peaks[1:]
-            
-            fig_nn = go.Figure()
-            fig_nn.add_trace(go.Scatter(
-                x=nn_times, 
-                y=nn_intervals,
-                mode='lines+markers',
-                name='NN Interval',
-                line=dict(color='#10B981')
-            ))
-            
-            fig_nn.update_layout(
-                title="NN Interval Variation (Heart Rate Variability)",
-                xaxis_title="Time / Index",
-                yaxis_title="NN Interval (Samples)"
-            )
-            st.plotly_chart(fig_nn, use_container_width=True)
-            
-        except Exception as e:
-            st.info(f"No signal data found for this user. (Tried to load '{file_name}' from storage)")
+            with st.spinner(f"Fetching signal data from {file_path}..."):
+                try:
+                    raw_res = supabase.storage.from_("raw_uploads").download(file_path)
+                    peak_res = supabase.storage.from_("peak_indices").download(file_path)
+                    
+                    if file_path.endswith('.parquet'):
+                        raw_df = pd.read_parquet(io.BytesIO(raw_res))
+                        peaks_df = pd.read_parquet(io.BytesIO(peak_res))
+                    else:
+                        # Assume it's JSON and convert to parquet during data extraction
+                        import json
+                        try:
+                            raw_df = pd.read_json(io.BytesIO(raw_res))
+                            peaks_df = pd.read_json(io.BytesIO(peak_res))
+                        except ValueError:
+                            # In case it's a JSON array of dicts and read_json fails
+                            raw_json = json.loads(raw_res.decode('utf-8'))
+                            peak_json = json.loads(peak_res.decode('utf-8'))
+                            raw_df = pd.DataFrame(raw_json)
+                            peaks_df = pd.DataFrame(peak_json)
+                            
+                        # Convert to parquet during data extraction
+                        raw_parquet = raw_df.to_parquet()
+                        peaks_parquet = peaks_df.to_parquet()
+                        
+                        raw_df = pd.read_parquet(io.BytesIO(raw_parquet))
+                        peaks_df = pd.read_parquet(io.BytesIO(peaks_parquet))
+                    
+                    # --- Plot 1: Raw Upload + Peaks Overlaid ---
+                    signal_col = 'signal' if 'signal' in raw_df.columns else raw_df.columns[-1]
+                    peak_col = 'peak_index' if 'peak_index' in peaks_df.columns else peaks_df.columns[0]
+                    
+                    # Try to find a time column, otherwise fallback to the row index
+                    time_col = 'time' if 'time' in raw_df.columns else ('timestamp' if 'timestamp' in raw_df.columns else None)
+                    peak_indices = peaks_df[peak_col].dropna().astype(int).values
+                    
+                    # Make sure indices are within bounds
+                    peak_indices = peak_indices[peak_indices < len(raw_df)]
+                    
+                    x_raw = raw_df[time_col] if time_col else raw_df.index
+                    x_peaks = x_raw.iloc[peak_indices] if time_col else peak_indices
+        
+                    fig_signal = go.Figure()
+                    
+                    # Add raw signal line
+                    fig_signal.add_trace(go.Scatter(
+                        x=x_raw, 
+                        y=raw_df[signal_col],
+                        mode='lines',
+                        name='Raw Signal',
+                        line=dict(color='#2563EB')
+                    ))
+                    
+                    # Add peaks as red dots
+                    fig_signal.add_trace(go.Scatter(
+                        x=x_peaks,
+                        y=raw_df[signal_col].iloc[peak_indices], 
+                        mode='markers',
+                        name='Detected Peaks',
+                        marker=dict(color='#EF4444', size=8, symbol='x')
+                    ))
+                    
+                    fig_signal.update_layout(title="Raw Signal with Peak Detection", xaxis_title="Time / Index", yaxis_title="Amplitude")
+                    st.plotly_chart(fig_signal, use_container_width=True)
+                    
+                    # --- Plot 2: NN Intervals Variation ---
+                    nn_intervals = np.diff(peak_indices)
+                    
+                    # The x-axis for NN intervals will now be the time (or index) of the *second* peak in each pair
+                    nn_times = x_peaks[1:] if len(x_peaks) > 1 else []
+                    
+                    if len(nn_intervals) > 0:
+                        fig_nn = go.Figure()
+                        fig_nn.add_trace(go.Scatter(
+                            x=nn_times, 
+                            y=nn_intervals,
+                            mode='lines+markers',
+                            name='NN Interval',
+                            line=dict(color='#10B981')
+                        ))
+                        
+                        fig_nn.update_layout(
+                            title="NN Interval Variation (Heart Rate Variability)",
+                            xaxis_title="Time / Index",
+                            yaxis_title="NN Interval (Samples)"
+                        )
+                        st.plotly_chart(fig_nn, use_container_width=True)
+                    else:
+                        st.info("Not enough peaks detected to calculate NN intervals.")
+                    
+                except Exception as e:
+                    st.error(f"Error processing signal data: {e}")
+                    st.info(f"Tried to load '{file_path}' from storage.")
