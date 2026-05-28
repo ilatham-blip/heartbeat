@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DatabaseService {
@@ -168,6 +170,9 @@ class DatabaseService {
     if (payload.containsKey('ecg_data')) {
       updatePayload['ecg_data'] = payload['ecg_data'];
     }
+    if (payload.containsKey('eog_data')) {
+      updatePayload['eog_data'] = payload['eog_data'];
+    }
     if (payload.containsKey('time')) {
       updatePayload['time'] = payload['time'];
     }
@@ -223,9 +228,141 @@ class DatabaseService {
   // ---------------------------------------------------------------------------
   // MORNING CHECK-IN
   // ---------------------------------------------------------------------------
+  Future<String?> uploadRawSignal({
+    required String userId,
+    required String checkinType,
+    required String dateStr,
+    required String timeStr,
+    required String signalType,
+    required List<double> data,
+  }) async {
+    if (data.isEmpty) return null;
+
+    final cleanDate = dateStr.replaceAll(RegExp(r'[^0-9\-]'), '_');
+    final cleanTime = timeStr.replaceAll(RegExp(r'[^0-9]'), '');
+
+    final fileName = '$userId/${checkinType}_${cleanDate}_${cleanTime}_$signalType.json';
+
+    try {
+      final jsonString = jsonEncode(data);
+      final bytes = utf8.encode(jsonString);
+
+      await _client.storage.from('raw_uploads').uploadBinary(
+            fileName,
+            Uint8List.fromList(bytes),
+            fileOptions: const FileOptions(
+              contentType: 'application/json',
+              upsert: true,
+            ),
+          );
+      return fileName;
+    } catch (e) {
+      print('Failed to upload raw signal to storage: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _insertMeasurementRow({
+    required String userId,
+    required String filePath,
+    required String dateStr,
+    required String timeStr,
+  }) async {
+    DateTime recordedAt;
+    try {
+      if (dateStr.contains('T')) {
+        recordedAt = DateTime.parse(dateStr);
+      } else {
+        final parsedDate = DateTime.parse(dateStr);
+        final parts = timeStr.split(':');
+        final hh = int.parse(parts[0]);
+        final mm = int.parse(parts[1]);
+        final ss = parts.length > 2 ? int.parse(parts[2]) : 0;
+        recordedAt = DateTime(
+          parsedDate.year,
+          parsedDate.month,
+          parsedDate.day,
+          hh,
+          mm,
+          ss,
+        );
+      }
+    } catch (_) {
+      recordedAt = DateTime.now();
+    }
+
+    try {
+      await _client.from('measurements').insert({
+        'user_id': userId,
+        'recorded_at': recordedAt.toIso8601String(),
+        'raw_file_path': filePath,
+        'source': 'plux',
+      });
+    } catch (e) {
+      print('Failed to insert measurement row: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // MORNING CHECK-IN
+  // ---------------------------------------------------------------------------
   Future<void> saveMorningCheckIn(Map<String, dynamic> data) async {
-    // data should correspond to columns in 'morning_checkins' table
-    // e.g. user_id, date, sleep_quality, fatigue, dizziness, tachycardia, notes
+    final userId = data['user_id'] as String;
+    final dateStr = data['date'] as String;
+    final timeStr = data['time'] as String;
+
+    if (data['ppg_data'] is List) {
+      final ppgList = List<double>.from(data['ppg_data'] as List);
+      try {
+        final ppgPath = await uploadRawSignal(
+          userId: userId,
+          checkinType: 'morning',
+          dateStr: dateStr,
+          timeStr: timeStr,
+          signalType: 'ppg',
+          data: ppgList,
+        );
+        data['ppg_data'] = ppgPath;
+        if (ppgPath != null) {
+          await _insertMeasurementRow(
+            userId: userId,
+            filePath: ppgPath,
+            dateStr: dateStr,
+            timeStr: timeStr,
+          );
+        }
+      } catch (e) {
+        print('Storage upload failed for ppg_data, falling back to DB storage: $e');
+      }
+    }
+
+    if (data['ecg_data'] is List) {
+      final ecgList = List<double>.from(data['ecg_data'] as List);
+      try {
+        final ecgPath = await uploadRawSignal(
+          userId: userId,
+          checkinType: 'morning',
+          dateStr: dateStr,
+          timeStr: timeStr,
+          signalType: 'ecg',
+          data: ecgList,
+        );
+        data['ecg_data'] = ecgPath;
+        data['eog_data'] = ecgPath;
+        if (ecgPath != null) {
+          await _insertMeasurementRow(
+            userId: userId,
+            filePath: ecgPath,
+            dateStr: dateStr,
+            timeStr: timeStr,
+          );
+        }
+      } catch (e) {
+        print('Storage upload failed for ecg_data, falling back to DB storage: $e');
+        data['eog_data'] = data['ecg_data']; // Map fallback to eog_data
+      }
+    }
+
     await _insertWithSchemaFallback('morning_checkins', data);
   }
 
@@ -233,7 +370,62 @@ class DatabaseService {
   // EVENING CHECK-IN
   // ---------------------------------------------------------------------------
   Future<void> saveEveningCheckIn(Map<String, dynamic> data) async {
-    // data should correspond to columns in 'evening_checkins' table
+    final userId = data['user_id'] as String;
+    final dateStr = data['date'] as String;
+    final timeStr = data['time'] as String;
+
+    if (data['ppg_data'] is List) {
+      final ppgList = List<double>.from(data['ppg_data'] as List);
+      try {
+        final ppgPath = await uploadRawSignal(
+          userId: userId,
+          checkinType: 'evening',
+          dateStr: dateStr,
+          timeStr: timeStr,
+          signalType: 'ppg',
+          data: ppgList,
+        );
+        data['ppg_data'] = ppgPath;
+        if (ppgPath != null) {
+          await _insertMeasurementRow(
+            userId: userId,
+            filePath: ppgPath,
+            dateStr: dateStr,
+            timeStr: timeStr,
+          );
+        }
+      } catch (e) {
+        print('Storage upload failed for ppg_data, falling back to DB storage: $e');
+      }
+    }
+
+    if (data['ecg_data'] is List) {
+      final ecgList = List<double>.from(data['ecg_data'] as List);
+      try {
+        final ecgPath = await uploadRawSignal(
+          userId: userId,
+          checkinType: 'evening',
+          dateStr: dateStr,
+          timeStr: timeStr,
+          signalType: 'ecg',
+          data: ecgList,
+        );
+        data['ecg_data'] = ecgPath;
+        data['eog_data'] = ecgPath;
+        if (ecgPath != null) {
+          await _insertMeasurementRow(
+            userId: userId,
+            filePath: ecgPath,
+            dateStr: dateStr,
+            timeStr: timeStr,
+          );
+        }
+      } catch (e) {
+        print('Storage upload failed for ecg_data, falling back to DB storage: $e');
+        data['eog_data'] = data['ecg_data']; // Map fallback to eog_data
+      }
+    }
+
     await _insertWithSchemaFallback('evening_checkins', data);
   }
 

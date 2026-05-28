@@ -194,7 +194,7 @@ class _MorningSurveyScreenState extends State<_MorningSurveyScreen> {
   final _pluxService = PluxService();
 
   // --- PLUX STATE VARIABLES ---
-  final int _recordDuration = 120; // Changed back to 20 for production
+  final int _recordDuration = 5; // Changed back to 20 for production
   bool _isPluxConnected = false;
 
   // App Modes
@@ -247,13 +247,20 @@ class _MorningSurveyScreenState extends State<_MorningSurveyScreen> {
     });
   }
 
+  bool _isDisconnected = false;
+  Future<void> _safeDisconnect() async {
+    if (_isDisconnected) return;
+    _isDisconnected = true;
+    await _pluxService.disconnect();
+  }
+
   @override
   void dispose() {
     _recordingTimer?.cancel();
     _dataSubscription?.cancel();
 
     // --- Kill the zombie connection when leaving the page! ---
-    _pluxService.disconnect();
+    _safeDisconnect();
     // ---------------------------------------------------------
 
     _hrCtrl.dispose();
@@ -400,7 +407,7 @@ class _MorningSurveyScreenState extends State<_MorningSurveyScreen> {
     appState.pauseMorningCheckIn(_buildDraft());
 
     // Force disconnect BEFORE leaving
-    await _pluxService.disconnect();
+    await _safeDisconnect();
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -426,7 +433,7 @@ class _MorningSurveyScreenState extends State<_MorningSurveyScreen> {
       appState.clearMorningDraft();
 
       // Force disconnect BEFORE leaving
-      await _pluxService.disconnect();
+      await _safeDisconnect();
       if (mounted) Navigator.of(context).pop();
     }
   }
@@ -455,6 +462,8 @@ class _MorningSurveyScreenState extends State<_MorningSurveyScreen> {
       await appState.saveMorningCheckIn(
         date: _date,
         time: _time,
+        heartRateBpm: int.tryParse(_hrCtrl.text),
+        hrvMs: int.tryParse(_hrvCtrl.text),
         insomnia: _insomnia,
         abnormalTiredness: _abnormalTiredness,
         dizziness: _dizziness,
@@ -472,12 +481,12 @@ class _MorningSurveyScreenState extends State<_MorningSurveyScreen> {
       );
 
       // Force disconnect BEFORE leaving
-      await _pluxService.disconnect();
+      await _safeDisconnect();
       if (mounted) {
         Navigator.of(context).pop();
       }
     } catch (e) {
-      await _pluxService.disconnect();
+      await _safeDisconnect();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

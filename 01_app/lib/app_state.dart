@@ -618,6 +618,8 @@ class MyAppState extends ChangeNotifier{
   Future<void> saveMorningCheckIn({
     required DateTime date,
     required TimeOfDay time,
+    int? heartRateBpm,
+    int? hrvMs,
     required Severity insomnia,
     required Severity abnormalTiredness,
     required Severity dizziness,
@@ -668,6 +670,8 @@ class MyAppState extends ChangeNotifier{
       'user_id': user.id,
       'date': _dateOnly(date),
       'time': '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
+      'heart_rate': heartRateBpm,
+      'hrv': hrvMs,
       'insomnia': insomnia.index,
       'abnormal_tiredness': abnormalTiredness.index,
       'dizziness': dizziness.index,

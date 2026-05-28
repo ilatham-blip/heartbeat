@@ -257,13 +257,20 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
     });
   }
 
+  bool _isDisconnected = false;
+  Future<void> _safeDisconnect() async {
+    if (_isDisconnected) return;
+    _isDisconnected = true;
+    await _pluxService.disconnect();
+  }
+
   @override
   void dispose() {
     _recordingTimer?.cancel();
     _dataSubscription?.cancel();
 
     // --- Kill the zombie connection when leaving the page! ---
-    _pluxService.disconnect();
+    _safeDisconnect();
     // ---------------------------------------------------------
 
     _hrCtrl.dispose();
@@ -411,7 +418,7 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
     final appState = Provider.of<MyAppState>(context, listen: false);
     appState.pauseEveningReview(_buildDraft());
 
-    await _pluxService.disconnect();
+    await _safeDisconnect();
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -435,7 +442,7 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
     if (confirmed == true) {
       appState.clearEveningDraft();
 
-      await _pluxService.disconnect();
+      await _safeDisconnect();
       if (mounted) Navigator.of(context).pop();
     }
   }
@@ -483,12 +490,12 @@ class _EveningSurveyScreenState extends State<_EveningSurveyScreen> {
         ecgData: _ecgData,
       );
 
-      await _pluxService.disconnect();
+      await _safeDisconnect();
       if (mounted) {
         Navigator.of(context).pop();
       }
     } catch (e) {
-      await _pluxService.disconnect();
+      await _safeDisconnect();
       if (mounted) {
         Navigator.of(context).pop();
       }
